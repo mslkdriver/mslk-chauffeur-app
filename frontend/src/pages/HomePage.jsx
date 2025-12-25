@@ -366,87 +366,33 @@ export default function HomePage() {
               {/* Addresses */}
               <div className="space-y-4">
                 {/* Pickup Address */}
-                <div className="space-y-2 relative" ref={pickupRef}>
+                <div className="space-y-2">
                   <Label className="text-[#D4AF37] text-xs uppercase tracking-widest flex items-center gap-2">
                     <MapPin size={14} /> Adresse de départ
                   </Label>
-                  <div className="relative">
-                    <Input
-                      data-testid="input-pickup"
-                      className="input-mslk"
-                      placeholder="Tapez une adresse (ex: Place de Jaude, Clermont)"
-                      value={pickupQuery}
-                      onChange={(e) => {
-                        setPickupQuery(e.target.value);
-                        setFormData(prev => ({ ...prev, pickup_address: e.target.value, pickup_lat: 0, pickup_lng: 0 }));
-                      }}
-                      onFocus={() => pickupSuggestions.length > 0 && setShowPickupDropdown(true)}
-                      required
-                    />
-                    {pickupLoading && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <div className="w-4 h-4 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    )}
-                  </div>
-                  {showPickupDropdown && pickupSuggestions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 bg-[#1a1a1a] border border-[#D4AF37] max-h-[200px] overflow-y-auto z-50" data-testid="pickup-suggestions">
-                      {pickupSuggestions.map((s, i) => (
-                        <div
-                          key={i}
-                          className="px-4 py-3 cursor-pointer border-b border-[#D4AF37]/10 hover:bg-[#D4AF37]/10 transition-colors"
-                          onClick={() => selectPickupAddress(s)}
-                        >
-                          <p className="text-white text-sm">{s.display_name}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {formData.pickup_lat !== 0 && (
-                    <p className="text-emerald-400 text-xs mt-1">✓ Adresse sélectionnée</p>
-                  )}
+                  <Input
+                    data-testid="input-pickup"
+                    className="input-mslk"
+                    placeholder="Ex: 15 rue de la Gare, Clermont-Ferrand"
+                    value={formData.pickup_address}
+                    onChange={(e) => setFormData({ ...formData, pickup_address: e.target.value })}
+                    required
+                  />
                 </div>
 
                 {/* Dropoff Address */}
-                <div className="space-y-2 relative" ref={dropoffRef}>
+                <div className="space-y-2">
                   <Label className="text-[#D4AF37] text-xs uppercase tracking-widest flex items-center gap-2">
                     <Navigation size={14} /> Adresse d'arrivée
                   </Label>
-                  <div className="relative">
-                    <Input
-                      data-testid="input-dropoff"
-                      className="input-mslk"
-                      placeholder="Tapez une adresse (ex: Gare SNCF Clermont)"
-                      value={dropoffQuery}
-                      onChange={(e) => {
-                        setDropoffQuery(e.target.value);
-                        setFormData(prev => ({ ...prev, dropoff_address: e.target.value, dropoff_lat: 0, dropoff_lng: 0 }));
-                      }}
-                      onFocus={() => dropoffSuggestions.length > 0 && setShowDropoffDropdown(true)}
-                      required
-                    />
-                    {dropoffLoading && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <div className="w-4 h-4 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    )}
-                  </div>
-                  {showDropoffDropdown && dropoffSuggestions.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 bg-[#1a1a1a] border border-[#D4AF37] max-h-[200px] overflow-y-auto z-50" data-testid="dropoff-suggestions">
-                      {dropoffSuggestions.map((s, i) => (
-                        <div
-                          key={i}
-                          className="px-4 py-3 cursor-pointer border-b border-[#D4AF37]/10 hover:bg-[#D4AF37]/10 transition-colors"
-                          onClick={() => selectDropoffAddress(s)}
-                        >
-                          <p className="text-white text-sm">{s.display_name}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {formData.dropoff_lat !== 0 && (
-                    <p className="text-emerald-400 text-xs mt-1">✓ Adresse sélectionnée</p>
-                  )}
+                  <Input
+                    data-testid="input-dropoff"
+                    className="input-mslk"
+                    placeholder="Ex: Aéroport Clermont-Ferrand"
+                    value={formData.dropoff_address}
+                    onChange={(e) => setFormData({ ...formData, dropoff_address: e.target.value })}
+                    required
+                  />
                 </div>
               </div>
 
