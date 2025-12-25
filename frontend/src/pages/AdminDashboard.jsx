@@ -696,6 +696,42 @@ export default function AdminDashboard() {
         </DialogContent>
       </Dialog>
 
+      {/* Price Dialog */}
+      <Dialog open={priceDialogOpen} onOpenChange={setPriceDialogOpen}>
+        <DialogContent className="bg-[#121212] border-[#D4AF37]">
+          <DialogHeader>
+            <DialogTitle className="text-white font-heading">Confirmer le prix</DialogTitle>
+          </DialogHeader>
+          {priceTrip && (
+            <div className="space-y-4">
+              <div className="bg-black/50 p-3 rounded text-sm">
+                <p className="text-[#A1A1A1]">Client: <span className="text-white">{priceTrip.client_name}</span></p>
+                <p className="text-[#A1A1A1]">Distance: <span className="text-[#D4AF37]">{priceTrip.distance_km.toFixed(1)} km</span></p>
+                <p className="text-[#A1A1A1]">Trajet: <span className="text-white">{priceTrip.pickup_address.split(",")[0]} → {priceTrip.dropoff_address.split(",")[0]}</span></p>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[#D4AF37]">Prix de la course (€)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="input-mslk text-xl font-bold text-center"
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  data-testid="input-price"
+                />
+                <p className="text-[#A1A1A1] text-xs text-center">
+                  Prix suggéré (2€/km + 5€): {(5 + priceTrip.distance_km * 2).toFixed(2)}€
+                </p>
+              </div>
+              <Button className="btn-gold w-full" onClick={handleUpdatePrice} data-testid="btn-confirm-price">
+                Confirmer et notifier le client
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Driver Dialog */}
       <Dialog open={driverDialogOpen} onOpenChange={setDriverDialogOpen}>
         <DialogContent className="bg-[#121212] border-[#D4AF37]">
