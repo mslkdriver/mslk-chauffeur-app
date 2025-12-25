@@ -606,10 +606,10 @@ async def get_driver_trips(current_user: dict = Depends(get_current_user)):
     if current_user["role"] not in [UserRole.DRIVER.value, UserRole.ADMIN.value]:
         raise HTTPException(status_code=403, detail="Drivers only")
     
-    # Get pending trips and trips assigned to this driver
+    # Get ONLY PUBLISHED pending trips and trips assigned to this driver
     trips = await db.trips.find({
         "$or": [
-            {"status": TripStatus.PENDING.value},
+            {"status": TripStatus.PENDING.value, "published": True},  # Only published pending trips
             {"status": TripStatus.ASSIGNED.value, "driver_id": current_user["id"]},
             {"driver_id": current_user["id"]}
         ]
