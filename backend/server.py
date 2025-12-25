@@ -435,6 +435,82 @@ async def login(credentials: UserLogin):
 async def get_me(current_user: dict = Depends(get_current_user)):
     return user_to_response(current_user)
 
+# Client Auth Routes
+class ClientCreate(BaseModel):
+    name: str
+    email: EmailStr
+    phone: str
+    password: str
+
+class ClientResponse(BaseModel):
+    id: str
+    name: str
+    email: str
+    phone: str
+    created_at: str
+
+class ClientTokenResponse(BaseModel):
+    token: str
+    user: ClientResponse
+
+@api_router.post("/auth/client/register", response_model=ClientTokenResponse)
+async def register_client(client_data: ClientCreate):
+    """Register a new client"""
+    existing = await db.clients.find_one({"email": client_data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+    
+    client_id = str(uuid.uuid4())
+    client = {
+        "id": client_id,
+        "name": client_data.name,
+        "email": client_data.email,
+        "phone": client_data.phone,
+        "password_hash": hash_password(client_data.password),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.clients.insert_one(client)
+    
+    token = create_token(client_id, "client")
+    
+    # Send welcome email
+    await send_email_notification(
+        client_data.email,
+        "Bienvenue chez MSLK VTC",
+        f"Bonjour {client_data.name},\n\nVotre compte MSLK VTC a été créé avec succès.\n\nVous pouvez maintenant réserver vos courses et suivre leur statut depuis votre espace personnel.\n\nL'équipe MSLK VTC"
+    )
+    
+    return ClientTokenResponse(
+        token=token,
+        user=ClientResponse(
+            id=client["id"],
+            name=client["name"],
+            email=client["email"],
+            phone=client["phone"],
+            created_at=client["created_at"]
+        )
+    )
+
+@api_router.post("/auth/client/login", response_model=ClientTokenResponse)
+async def login_client(credentials: UserLogin):
+    """Login as client"""
+    client = await db.clients.find_one({"email": credentials.email}, {"_id": 0})
+    if not client or not verify_password(credentials.password, client.get("password_hash", "")):
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+    
+    token = create_token(client["id"], "client")
+    return ClientTokenResponse(
+        token=token,
+        user=ClientResponse(
+            id=client["id"],
+            name=client["name"],
+            email=client["email"],
+            phone=client["phone"],
+            created_at=client["created_at"]
+        )
+    )
+
 # Trip Routes (Public - for clients)
 @api_router.post("/trips", response_model=TripResponse)
 async def create_trip(trip_data: TripCreate):
