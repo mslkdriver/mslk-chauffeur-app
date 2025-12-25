@@ -315,6 +315,135 @@ class MSLKVTCTester:
         
         return success1 and success2 and success3
 
+    def test_ring_notifications(self):
+        """Test admin ring notification feature"""
+        if not self.admin_token or not hasattr(self, 'test_trip_id'):
+            self.log_test("Ring Notifications", False, "Missing admin token or trip ID")
+            return False
+        
+        headers = {"Authorization": f"Bearer {self.admin_token}"}
+        
+        # Test ring drivers endpoint
+        success, response = self.run_test(
+            "Admin - Ring Drivers for Trip",
+            "POST",
+            f"admin/trips/{self.test_trip_id}/ring",
+            200,
+            headers=headers
+        )
+        
+        if success:
+            # Check if response contains notification count
+            message_contains_count = "chauffeurs" in response.get('message', '').lower()
+            self.log_test("Ring Response - Contains Driver Count", message_contains_count)
+            return True
+        return False
+
+    def test_driver_notifications(self):
+        """Test driver notification endpoints"""
+        if not self.driver_token:
+            self.log_test("Driver Notifications", False, "No driver token")
+            return False
+        
+        headers = {"Authorization": f"Bearer {self.driver_token}"}
+        
+        # Get notifications
+        success1, notifications = self.run_test(
+            "Driver - Get Notifications",
+            "GET",
+            "driver/notifications",
+            200,
+            headers=headers
+        )
+        
+        # If there are notifications, test marking one as read
+        success2 = True
+        if success1 and len(notifications) > 0:
+            notification_id = notifications[0].get('id')
+            if notification_id:
+                success2, _ = self.run_test(
+                    "Driver - Mark Notification Read",
+                    "POST",
+                    f"driver/notifications/{notification_id}/read",
+                    200,
+                    headers=headers
+                )
+        
+        return success1 and success2
+
+    def test_email_notifications_toggle(self):
+        """Test driver email notifications toggle"""
+        if not self.driver_token:
+            self.log_test("Email Notifications Toggle", False, "No driver token")
+            return False
+        
+        headers = {"Authorization": f"Bearer {self.driver_token}"}
+        
+        # Test disabling email notifications
+        success1, response1 = self.run_test(
+            "Driver - Disable Email Notifications",
+            "PUT",
+            "driver/email-notifications",
+            200,
+            data={"email_notifications": False},
+            headers=headers
+        )
+        
+        # Test enabling email notifications
+        success2, response2 = self.run_test(
+            "Driver - Enable Email Notifications",
+            "PUT",
+            "driver/email-notifications",
+            200,
+            data={"email_notifications": True},
+            headers=headers
+        )
+        
+        if success1 and success2:
+            # Verify responses contain the updated setting
+            setting1_correct = response1.get('email_notifications') == False
+            setting2_correct = response2.get('email_notifications') == True
+            self.log_test("Email Toggle - Settings Updated", setting1_correct and setting2_correct)
+            return True
+        return False
+
+    def test_commission_calculations(self):
+        """Test commission calculation features"""
+        if not self.admin_token or not hasattr(self, 'test_trip_id'):
+            self.log_test("Commission Calculations", False, "Missing admin token or trip ID")
+            return False
+        
+        headers = {"Authorization": f"Bearer {self.admin_token}"}
+        
+        # First set a price for the trip
+        success1, _ = self.run_test(
+            "Admin - Set Trip Price",
+            "PUT",
+            f"admin/trips/{self.test_trip_id}/price",
+            200,
+            data={"price": 50.0},
+            headers=headers
+        )
+        
+        # Test updating commission rate
+        success2, response = self.run_test(
+            "Admin - Update Trip Commission",
+            "PUT",
+            f"admin/trips/{self.test_trip_id}/commission",
+            200,
+            data={"commission_rate": 0.20},
+            headers=headers
+        )
+        
+        if success2:
+            # Verify commission amount was recalculated (20% of 50€ = 10€)
+            expected_commission = 50.0 * 0.20
+            actual_commission = response.get('commission_amount', 0)
+            commission_correct = abs(actual_commission - expected_commission) < 0.01
+            self.log_test("Commission Calculation - Amount Correct", commission_correct, 
+                         f"Expected: {expected_commission}€, Got: {actual_commission}€")
+            return commission_correct
+        return False
     def test_trip_workflow(self):
         """Test complete trip workflow: accept -> start -> complete"""
         if not self.driver_token or not hasattr(self, 'test_trip_id'):
