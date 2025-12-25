@@ -6,6 +6,8 @@ import "@/App.css";
 import HomePage from "./pages/HomePage";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import ClientHistory from "./pages/ClientHistory";
+import ClientLogin from "./pages/ClientLogin";
+import ClientDashboard from "./pages/ClientDashboard";
 import DriverLogin from "./pages/DriverLogin";
 import DriverDashboard from "./pages/DriverDashboard";
 import AdminLogin from "./pages/AdminLogin";
@@ -20,6 +22,8 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/confirmation/:tripId" element={<BookingConfirmation />} />
           <Route path="/historique" element={<ClientHistory />} />
+          <Route path="/client/connexion" element={<ClientLogin />} />
+          <Route path="/client/espace" element={<ClientDashboard />} />
           
           {/* Driver Routes */}
           <Route path="/chauffeur" element={<DriverLogin />} />
