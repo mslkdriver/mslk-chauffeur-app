@@ -185,9 +185,15 @@ export default function ClientDashboard() {
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColors[trip.status]}`}>
                       {statusLabels[trip.status]}
                     </span>
-                    <p className="text-[#D4AF37] font-heading text-2xl font-bold">
-                      {trip.price.toFixed(2)} €
-                    </p>
+                    <div className="text-right">
+                      {trip.price > 0 ? (
+                        <p className="text-[#D4AF37] font-heading text-2xl font-bold">
+                          {trip.price.toFixed(2)} €
+                        </p>
+                      ) : (
+                        <p className="text-[#A1A1A1] text-sm">Prix sur confirmation</p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Date/Time */}
