@@ -183,13 +183,26 @@ export default function AdminDashboard() {
     }
   };
 
-  // Cancel trip
-  const handleCancelTrip = async (tripId) => {
-    if (!window.confirm("Annuler cette course ?")) return;
+  // Delete trip
+  const handleDeleteTrip = async (tripId) => {
+    if (!window.confirm("Supprimer définitivement cette course ?")) return;
     
     try {
       await axios.delete(`${API}/admin/trips/${tripId}`, { headers: getAuthHeader() });
-      toast.success("Course annulée");
+      toast.success("Course supprimée");
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
+    }
+  };
+
+  // Delete driver
+  const handleDeleteDriver = async (driverId, driverName) => {
+    if (!window.confirm(`Supprimer définitivement le chauffeur ${driverName} ?`)) return;
+    
+    try {
+      await axios.delete(`${API}/admin/drivers/${driverId}`, { headers: getAuthHeader() });
+      toast.success("Chauffeur supprimé");
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Erreur");
