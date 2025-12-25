@@ -159,6 +159,21 @@ export default function DriverDashboard() {
     fetchData();
   };
 
+  // Toggle email notifications
+  const toggleEmailNotifications = async (enabled) => {
+    try {
+      await axios.put(
+        `${API}/driver/email-notifications`,
+        { email_notifications: enabled },
+        { headers: getAuthHeader() }
+      );
+      setEmailNotifications(enabled);
+      toast.success(enabled ? "Notifications email activées" : "Notifications email désactivées");
+    } catch (error) {
+      toast.error("Erreur lors de la mise à jour");
+    }
+  };
+
   // Update status
   const updateDriverStatus = async (status) => {
     try {
