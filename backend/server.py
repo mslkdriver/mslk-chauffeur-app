@@ -84,6 +84,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     role: UserRole = UserRole.DRIVER
+    email_notifications: bool = True
 
 class UserLogin(BaseModel):
     email: EmailStr
