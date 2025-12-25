@@ -191,6 +191,7 @@ class TripResponse(BaseModel):
     driver_name: Optional[str]
     commission_amount: float
     commission_rate: float
+    published: bool
     created_at: str
     updated_at: str
     completed_at: Optional[str]
