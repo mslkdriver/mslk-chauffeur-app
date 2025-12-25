@@ -515,12 +515,11 @@ async def login_client(credentials: UserLogin):
 @api_router.post("/trips", response_model=TripResponse)
 async def create_trip(trip_data: TripCreate):
     """Create a new trip booking (public endpoint for clients)"""
-    # Calculate distance and price
+    # Calculate distance (price will be confirmed by admin)
     distance = calculate_distance(
         trip_data.pickup_lat, trip_data.pickup_lng,
         trip_data.dropoff_lat, trip_data.dropoff_lng
     )
-    price = calculate_price(distance)
     
     trip = Trip(
         client_name=trip_data.client_name,
@@ -538,7 +537,7 @@ async def create_trip(trip_data: TripCreate):
         passengers=trip_data.passengers,
         notes=trip_data.notes,
         distance_km=round(distance, 2),
-        price=price
+        price=0  # Prix à confirmer par les services MSLK
     )
     
     trip_dict = trip.model_dump()
@@ -551,8 +550,8 @@ async def create_trip(trip_data: TripCreate):
     # Send confirmation email
     await send_email_notification(
         trip_data.client_email,
-        "MSLK VTC - Confirmation de réservation",
-        f"Votre course du {trip_data.pickup_datetime.strftime('%d/%m/%Y à %H:%M')} a été enregistrée. Prix estimé: {price}€"
+        "MSLK VTC - Demande de réservation reçue",
+        f"Bonjour {trip_data.client_name},\n\nVotre demande de course pour le {trip_data.pickup_datetime.strftime('%d/%m/%Y à %H:%M')} a été enregistrée.\n\nDépart : {trip_data.pickup_address}\nArrivée : {trip_data.dropoff_address}\n\nNos services vous contacteront rapidement pour confirmer le tarif.\n\nMerci de votre confiance.\n\nL'équipe MSLK VTC"
     )
     
     return trip_to_response(trip_dict)
