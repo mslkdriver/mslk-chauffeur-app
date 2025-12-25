@@ -83,8 +83,8 @@ export default function BookingConfirmation() {
                   <span className="text-[#D4AF37] text-sm font-bold">1</span>
                 </div>
                 <div>
-                  <p className="text-white font-medium">Confirmation par email</p>
-                  <p className="text-[#A1A1A1] text-sm">Un email de confirmation vous a été envoyé.</p>
+                  <p className="text-white font-medium">Demande enregistrée</p>
+                  <p className="text-[#A1A1A1] text-sm">Votre demande de réservation a été transmise à nos services.</p>
                 </div>
               </div>
 
@@ -93,8 +93,8 @@ export default function BookingConfirmation() {
                   <span className="text-[#D4AF37] text-sm font-bold">2</span>
                 </div>
                 <div>
-                  <p className="text-white font-medium">Attribution du chauffeur</p>
-                  <p className="text-[#A1A1A1] text-sm">Un chauffeur vous sera attribué dans les plus brefs délais.</p>
+                  <p className="text-white font-medium">Confirmation du tarif</p>
+                  <p className="text-[#A1A1A1] text-sm">Nos services vous contacteront pour confirmer le prix de la course.</p>
                 </div>
               </div>
 
