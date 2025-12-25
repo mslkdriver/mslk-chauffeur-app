@@ -73,15 +73,15 @@ class MSLKVTCTester:
         return success
 
     def test_admin_login(self):
-        """Test admin login"""
+        """Test admin login with provided credentials"""
         success, response = self.run_test(
             "Admin Login",
             "POST",
             "auth/login",
             200,
             data={
-                "email": "admin@mslk-vtc.fr",
-                "password": "Admin123!"
+                "email": "mslkdriver@gmail.com",
+                "password": "SAMIR1663"
             }
         )
         if success and 'token' in response:
