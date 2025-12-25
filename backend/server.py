@@ -554,6 +554,21 @@ async def create_trip(trip_data: TripCreate):
     
     await db.trips.insert_one(trip_dict)
     
+    # Create admin notification for new booking
+    admin_notification = {
+        "id": str(uuid.uuid4()),
+        "type": "new_booking",
+        "trip_id": trip.id,
+        "message": f"Nouvelle réservation de {trip_data.client_name}",
+        "client_name": trip_data.client_name,
+        "client_phone": trip_data.client_phone,
+        "pickup_address": trip_data.pickup_address[:50],
+        "dropoff_address": trip_data.dropoff_address[:50],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "read": False
+    }
+    await db.admin_notifications.insert_one(admin_notification)
+    
     # Send confirmation email
     await send_email_notification(
         trip_data.client_email,
