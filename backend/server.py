@@ -688,13 +688,14 @@ async def update_trip_status(trip_id: str, status_update: TripStatusUpdate, curr
         commission = trip["price"] * trip.get("commission_rate", 0.15)
         update_data["commission_amount"] = round(commission, 2)
         
-        # Update driver stats
+        # Update driver stats including total commission
         await db.users.update_one(
             {"id": current_user["id"]},
             {
                 "$inc": {
                     "total_trips": 1,
-                    "total_revenue": trip["price"]
+                    "total_revenue": trip["price"],
+                    "total_commission": round(commission, 2)
                 },
                 "$set": {"status": DriverStatus.AVAILABLE.value}
             }
