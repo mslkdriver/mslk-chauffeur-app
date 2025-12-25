@@ -270,6 +270,36 @@ export default function AdminDashboard() {
     }
   };
 
+  // Publish trip to drivers
+  const handlePublishTrip = async (tripId) => {
+    try {
+      await axios.post(
+        `${API}/admin/trips/${tripId}/publish`,
+        {},
+        { headers: getAuthHeader() }
+      );
+      toast.success("Course publiée ! Les chauffeurs peuvent maintenant la voir.");
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
+    }
+  };
+
+  // Unpublish trip (hide from drivers)
+  const handleUnpublishTrip = async (tripId) => {
+    try {
+      await axios.post(
+        `${API}/admin/trips/${tripId}/unpublish`,
+        {},
+        { headers: getAuthHeader() }
+      );
+      toast.success("Course retirée. Les chauffeurs ne peuvent plus la voir.");
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
+    }
+  };
+
   // Update driver
   const handleUpdateDriver = async () => {
     if (!selectedDriver) return;
