@@ -472,6 +472,7 @@ export default function DriverDashboard() {
                       <Briefcase size={14} /> {trip.luggage_count}
                     </span>
                     <span className="text-[#D4AF37]">{trip.distance_km.toFixed(1)} km</span>
+                    <span className="text-red-400 text-xs">Commission: {((trip.commission_rate || 0.15) * 100).toFixed(0)}%</span>
                   </div>
 
                   {/* Actions */}
