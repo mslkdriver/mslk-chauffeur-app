@@ -370,10 +370,10 @@ export default function DriverDashboard() {
               <p className="stats-value">{stats.daily_revenue.toFixed(0)}€</p>
               <p className="stats-label">Aujourd'hui</p>
             </div>
-            <div className="stats-card" data-testid="stat-weekly">
-              <TrendingUp className="w-8 h-8 text-[#D4AF37] mx-auto mb-2" />
-              <p className="stats-value">{stats.weekly_revenue.toFixed(0)}€</p>
-              <p className="stats-label">Cette semaine</p>
+            <div className="stats-card" data-testid="stat-commission">
+              <DollarSign className="w-8 h-8 text-red-400 mx-auto mb-2" />
+              <p className="stats-value text-red-400">{(user?.total_commission || 0).toFixed(0)}€</p>
+              <p className="stats-label">Commission totale</p>
             </div>
             <div className="stats-card" data-testid="stat-monthly">
               <DollarSign className="w-8 h-8 text-[#D4AF37] mx-auto mb-2" />
@@ -390,16 +390,8 @@ export default function DriverDashboard() {
 
         {/* Total Revenue Card */}
         <div className="bg-[#121212] border border-[#D4AF37]/30 p-4 mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[#A1A1A1] text-sm">Revenu total généré</p>
-              <p className="text-[#D4AF37] text-2xl font-bold">{(user?.total_revenue || 0).toFixed(2)} €</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[#A1A1A1] text-xs">Commission due à MSLK</p>
-              <p className="text-red-400 text-lg font-bold">{(user?.total_commission || 0).toFixed(2)} €</p>
-            </div>
-          </div>
+          <p className="text-[#A1A1A1] text-sm">Revenu total généré</p>
+          <p className="text-[#D4AF37] text-2xl font-bold">{(user?.total_revenue || 0).toFixed(2)} €</p>
         </div>
 
         {/* Pending/Assigned Trips */}
