@@ -272,7 +272,11 @@ export default function ClientDashboard() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[#D4AF37] font-bold">{trip.price.toFixed(2)} €</p>
+                      {trip.price > 0 ? (
+                        <p className="text-[#D4AF37] font-bold">{trip.price.toFixed(2)} €</p>
+                      ) : (
+                        <p className="text-[#A1A1A1] text-xs">Sur confirmation</p>
+                      )}
                       <span className={`text-xs ${statusColors[trip.status]}`}>
                         {statusLabels[trip.status]}
                       </span>
