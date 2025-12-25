@@ -64,6 +64,11 @@ export default function AdminDashboard() {
   const [commissionTrip, setCommissionTrip] = useState(null);
   const [newCommission, setNewCommission] = useState("");
 
+  // Price dialog
+  const [priceDialogOpen, setPriceDialogOpen] = useState(false);
+  const [priceTrip, setPriceTrip] = useState(null);
+  const [newPrice, setNewPrice] = useState("");
+
   // Driver dialog
   const [driverDialogOpen, setDriverDialogOpen] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
