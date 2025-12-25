@@ -261,19 +261,29 @@ export default function HomePage() {
               </div>
 
               {/* Now option */}
-              <div className="flex items-center space-x-3 p-4 bg-black border border-[#D4AF37]/30 rounded">
-                <Checkbox 
-                  id="now" 
-                  checked={isNow}
-                  onCheckedChange={(checked) => setIsNow(checked === true)}
-                  className="border-[#D4AF37] data-[state=checked]:bg-[#D4AF37] data-[state=checked]:text-black"
+              <div 
+                className="flex items-center space-x-3 p-4 bg-black border border-[#D4AF37]/30 rounded cursor-pointer"
+                onClick={() => setIsNow(!isNow)}
+              >
+                <div 
+                  className={`w-5 h-5 border-2 rounded flex items-center justify-center transition-colors ${
+                    isNow 
+                      ? 'bg-[#D4AF37] border-[#D4AF37]' 
+                      : 'border-[#D4AF37] bg-transparent'
+                  }`}
                   data-testid="checkbox-now"
-                />
-                <label htmlFor="now" className="flex items-center gap-2 text-white cursor-pointer">
+                >
+                  {isNow && (
+                    <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 text-white">
                   <Zap size={18} className="text-[#D4AF37]" />
                   <span className="font-medium">Maintenant</span>
                   <span className="text-[#A1A1A1] text-sm">(course immédiate)</span>
-                </label>
+                </div>
               </div>
 
               {/* Date/Time - hidden if "Now" is checked */}
