@@ -265,7 +265,7 @@ export default function HomePage() {
                 <Checkbox 
                   id="now" 
                   checked={isNow}
-                  onCheckedChange={(checked) => setIsNow(checked)}
+                  onCheckedChange={(checked) => setIsNow(checked === true)}
                   className="border-[#D4AF37] data-[state=checked]:bg-[#D4AF37] data-[state=checked]:text-black"
                   data-testid="checkbox-now"
                 />
