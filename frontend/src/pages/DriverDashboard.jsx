@@ -341,9 +341,30 @@ export default function DriverDashboard() {
           </p>
         </div>
 
+        {/* Email notification toggle */}
+        <div className="bg-[#121212] border border-[#D4AF37]/20 p-4 mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {emailNotifications ? (
+              <Mail className="w-5 h-5 text-emerald-400" />
+            ) : (
+              <MailOff className="w-5 h-5 text-gray-500" />
+            )}
+            <div>
+              <p className="text-white text-sm font-medium">Notifications par email</p>
+              <p className="text-[#A1A1A1] text-xs">Recevoir un email pour chaque nouvelle course</p>
+            </div>
+          </div>
+          <Switch
+            checked={emailNotifications}
+            onCheckedChange={toggleEmailNotifications}
+            className="data-[state=checked]:bg-[#D4AF37]"
+            data-testid="email-toggle"
+          />
+        </div>
+
         {/* Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="stats-card" data-testid="stat-daily">
               <DollarSign className="w-8 h-8 text-[#D4AF37] mx-auto mb-2" />
               <p className="stats-value">{stats.daily_revenue.toFixed(0)}€</p>
