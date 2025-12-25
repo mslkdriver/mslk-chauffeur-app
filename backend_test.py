@@ -4,7 +4,7 @@ import json
 from datetime import datetime, timedelta
 
 class MSLKVTCTester:
-    def __init__(self, base_url="https://gold-ride.preview.emergentagent.com/api"):
+    def __init__(self, base_url="https://luxedriver.preview.emergentagent.com/api"):
         self.base_url = base_url
         self.admin_token = None
         self.driver_token = None
