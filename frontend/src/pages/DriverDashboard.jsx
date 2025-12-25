@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { 
   MapPin, Navigation, Calendar, Clock, Car, Users, Briefcase, Phone, 
   LogOut, Bell, Check, X, Play, Flag, TrendingUp, DollarSign, Route,
-  ExternalLink, RefreshCw, Mail, MailOff
+  ExternalLink, RefreshCw, Mail, MailX
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
