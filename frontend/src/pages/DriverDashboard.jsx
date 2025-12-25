@@ -347,7 +347,7 @@ export default function DriverDashboard() {
             {emailNotifications ? (
               <Mail className="w-5 h-5 text-emerald-400" />
             ) : (
-              <MailOff className="w-5 h-5 text-gray-500" />
+              <MailX className="w-5 h-5 text-gray-500" />
             )}
             <div>
               <p className="text-white text-sm font-medium">Notifications par email</p>
