@@ -97,9 +97,11 @@ class User(UserBase):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     total_trips: int = 0
     total_revenue: float = 0.0
+    total_commission: float = 0.0  # Total commission due
     commission_rate: float = 0.15  # 15% default
     notes: str = ""
     is_active: bool = True
+    email_notifications: bool = True  # Option to receive email notifications
 
 class UserResponse(BaseModel):
     id: str
@@ -111,9 +113,11 @@ class UserResponse(BaseModel):
     created_at: str
     total_trips: int
     total_revenue: float
+    total_commission: float
     commission_rate: float
     notes: str
     is_active: bool
+    email_notifications: bool
 
 class TokenResponse(BaseModel):
     token: str
