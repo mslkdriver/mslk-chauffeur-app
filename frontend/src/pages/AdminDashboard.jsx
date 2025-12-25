@@ -471,7 +471,7 @@ export default function AdminDashboard() {
 
         {/* Tabs */}
         <Tabs defaultValue="trips" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-[#121212] mb-6">
+          <TabsList className="grid w-full grid-cols-3 bg-[#121212] mb-6">
             <TabsTrigger 
               value="trips" 
               className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-black"
@@ -485,6 +485,13 @@ export default function AdminDashboard() {
               data-testid="tab-drivers"
             >
               Chauffeurs ({drivers.length})
+            </TabsTrigger>
+            <TabsTrigger 
+              value="clients" 
+              className="data-[state=active]:bg-[#D4AF37] data-[state=active]:text-black"
+              data-testid="tab-clients"
+            >
+              Clients ({clients.length})
             </TabsTrigger>
           </TabsList>
 
