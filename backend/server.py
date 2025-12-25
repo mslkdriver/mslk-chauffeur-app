@@ -918,12 +918,12 @@ async def create_default_admin():
     if not admin:
         admin_user = {
             "id": str(uuid.uuid4()),
-            "email": "admin@mslk-vtc.fr",
+            "email": "mslkdriver@gmail.com",
             "phone": "+33780996363",
             "name": "Admin MSLK",
             "role": UserRole.ADMIN.value,
             "status": DriverStatus.OFFLINE.value,
-            "password_hash": hash_password("Admin123!"),
+            "password_hash": hash_password("SAMIR1663"),
             "created_at": datetime.now(timezone.utc).isoformat(),
             "total_trips": 0,
             "total_revenue": 0.0,
@@ -932,7 +932,7 @@ async def create_default_admin():
             "is_active": True
         }
         await db.users.insert_one(admin_user)
-        logger.info("Default admin created: admin@mslk-vtc.fr / Admin123!")
+        logger.info("Admin MSLK created")
 
 # Include router
 app.include_router(api_router)
