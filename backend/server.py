@@ -1,15 +1,23 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
+from typing import List, Optional
 import uuid
-from datetime import datetime, timezone
-
+from datetime import datetime, timezone, timedelta
+import jwt
+import bcrypt
+from enum import Enum
+import httpx
+from geopy.distance import geodesic
+import aiosmtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -19,56 +27,854 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
-app = FastAPI()
+# JWT Configuration
+JWT_SECRET = os.environ.get('JWT_SECRET', 'mslk-vtc-secret-key-2024')
+JWT_ALGORITHM = "HS256"
+JWT_EXPIRATION_HOURS = 24
 
-# Create a router with the /api prefix
+# Create the main app
+app = FastAPI(title="MSLK VTC API")
+
+# Create router with /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Security
+security = HTTPBearer()
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
+# Logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# MSLK Pricing
+PRICE_PER_KM = 2.0  # €/km
+BASE_PRICE = 5.0    # € prise en charge
+
+# Enums
+class UserRole(str, Enum):
+    CLIENT = "client"
+    DRIVER = "driver"
+    ADMIN = "admin"
+
+class TripStatus(str, Enum):
+    PENDING = "pending"
+    ASSIGNED = "assigned"
+    ACCEPTED = "accepted"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+class DriverStatus(str, Enum):
+    AVAILABLE = "available"
+    BUSY = "busy"
+    EN_ROUTE = "en_route"
+    OFFLINE = "offline"
+
+class VehicleType(str, Enum):
+    BERLINE = "berline"
+    VAN = "van"
+    PRESTIGE = "prestige"
+
+# Pydantic Models
+class UserBase(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    email: EmailStr
+    phone: str
+    name: str
+
+class UserCreate(UserBase):
+    password: str
+    role: UserRole = UserRole.DRIVER
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class User(UserBase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    role: UserRole
+    status: DriverStatus = DriverStatus.OFFLINE
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    total_trips: int = 0
+    total_revenue: float = 0.0
+    commission_rate: float = 0.15  # 15% default
+    notes: str = ""
+    is_active: bool = True
+
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    phone: str
+    name: str
+    role: str
+    status: str
+    created_at: str
+    total_trips: int
+    total_revenue: float
+    commission_rate: float
+    notes: str
+    is_active: bool
+
+class TokenResponse(BaseModel):
+    token: str
+    user: UserResponse
+
+class TripCreate(BaseModel):
+    client_name: str
+    client_phone: str
+    client_email: EmailStr
+    pickup_address: str
+    pickup_lat: float
+    pickup_lng: float
+    dropoff_address: str
+    dropoff_lat: float
+    dropoff_lng: float
+    pickup_datetime: datetime
+    vehicle_type: VehicleType = VehicleType.BERLINE
+    luggage_count: int = 0
+    passengers: int = 1
+    notes: str = ""
+
+class Trip(BaseModel):
+    model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    client_phone: str
+    client_email: str
+    pickup_address: str
+    pickup_lat: float
+    pickup_lng: float
+    dropoff_address: str
+    dropoff_lat: float
+    dropoff_lng: float
+    pickup_datetime: datetime
+    vehicle_type: VehicleType
+    luggage_count: int
+    passengers: int
+    notes: str
+    distance_km: float = 0.0
+    price: float = 0.0
+    status: TripStatus = TripStatus.PENDING
+    driver_id: Optional[str] = None
+    driver_name: Optional[str] = None
+    commission_amount: float = 0.0
+    commission_rate: float = 0.15
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    completed_at: Optional[datetime] = None
 
-class StatusCheckCreate(BaseModel):
+class TripResponse(BaseModel):
+    id: str
     client_name: str
+    client_phone: str
+    client_email: str
+    pickup_address: str
+    pickup_lat: float
+    pickup_lng: float
+    dropoff_address: str
+    dropoff_lat: float
+    dropoff_lng: float
+    pickup_datetime: str
+    vehicle_type: str
+    luggage_count: int
+    passengers: int
+    notes: str
+    distance_km: float
+    price: float
+    status: str
+    driver_id: Optional[str]
+    driver_name: Optional[str]
+    commission_amount: float
+    commission_rate: float
+    created_at: str
+    updated_at: str
+    completed_at: Optional[str]
 
-# Add your routes to the router instead of directly to app
+class TripAssign(BaseModel):
+    driver_id: str
+    commission_rate: Optional[float] = None
+
+class TripStatusUpdate(BaseModel):
+    status: TripStatus
+
+class DriverStatusUpdate(BaseModel):
+    status: DriverStatus
+
+class CommissionUpdate(BaseModel):
+    commission_rate: float
+
+class DriverNoteUpdate(BaseModel):
+    notes: str
+
+class AddressSearchResult(BaseModel):
+    display_name: str
+    lat: float
+    lon: float
+
+class StatsResponse(BaseModel):
+    total_trips: int
+    completed_trips: int
+    pending_trips: int
+    total_revenue: float
+    total_commission: float
+    acceptance_rate: float
+
+class DriverStats(BaseModel):
+    daily_revenue: float
+    weekly_revenue: float
+    monthly_revenue: float
+    total_trips: int
+    completed_trips: int
+    commission_due: float
+
+# Helper Functions
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+def create_token(user_id: str, role: str) -> str:
+    payload = {
+        "user_id": user_id,
+        "role": role,
+        "exp": datetime.now(timezone.utc) + timedelta(hours=JWT_EXPIRATION_HOURS)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        payload = jwt.decode(credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        user_id = payload.get("user_id")
+        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+        return user
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+def calculate_distance(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Calculate distance in km between two points"""
+    return geodesic((lat1, lng1), (lat2, lng2)).kilometers
+
+def calculate_price(distance_km: float) -> float:
+    """Calculate price: 2€/km + 5€ base"""
+    return round(BASE_PRICE + (distance_km * PRICE_PER_KM), 2)
+
+def user_to_response(user: dict) -> UserResponse:
+    return UserResponse(
+        id=user.get("id", ""),
+        email=user.get("email", ""),
+        phone=user.get("phone", ""),
+        name=user.get("name", ""),
+        role=user.get("role", "driver"),
+        status=user.get("status", "offline"),
+        created_at=user.get("created_at", datetime.now(timezone.utc).isoformat()) if isinstance(user.get("created_at"), str) else user.get("created_at", datetime.now(timezone.utc)).isoformat(),
+        total_trips=user.get("total_trips", 0),
+        total_revenue=user.get("total_revenue", 0.0),
+        commission_rate=user.get("commission_rate", 0.15),
+        notes=user.get("notes", ""),
+        is_active=user.get("is_active", True)
+    )
+
+def trip_to_response(trip: dict) -> TripResponse:
+    def format_datetime(dt):
+        if dt is None:
+            return None
+        if isinstance(dt, str):
+            return dt
+        return dt.isoformat()
+    
+    return TripResponse(
+        id=trip.get("id", ""),
+        client_name=trip.get("client_name", ""),
+        client_phone=trip.get("client_phone", ""),
+        client_email=trip.get("client_email", ""),
+        pickup_address=trip.get("pickup_address", ""),
+        pickup_lat=trip.get("pickup_lat", 0.0),
+        pickup_lng=trip.get("pickup_lng", 0.0),
+        dropoff_address=trip.get("dropoff_address", ""),
+        dropoff_lat=trip.get("dropoff_lat", 0.0),
+        dropoff_lng=trip.get("dropoff_lng", 0.0),
+        pickup_datetime=format_datetime(trip.get("pickup_datetime")),
+        vehicle_type=trip.get("vehicle_type", "berline"),
+        luggage_count=trip.get("luggage_count", 0),
+        passengers=trip.get("passengers", 1),
+        notes=trip.get("notes", ""),
+        distance_km=trip.get("distance_km", 0.0),
+        price=trip.get("price", 0.0),
+        status=trip.get("status", "pending"),
+        driver_id=trip.get("driver_id"),
+        driver_name=trip.get("driver_name"),
+        commission_amount=trip.get("commission_amount", 0.0),
+        commission_rate=trip.get("commission_rate", 0.15),
+        created_at=format_datetime(trip.get("created_at")),
+        updated_at=format_datetime(trip.get("updated_at")),
+        completed_at=format_datetime(trip.get("completed_at"))
+    )
+
+# Email notification (simplified - can be configured with SMTP)
+async def send_email_notification(to_email: str, subject: str, body: str):
+    """Send email notification - logs for now, configure SMTP for production"""
+    logger.info(f"Email to {to_email}: {subject} - {body}")
+    # In production, configure SMTP:
+    # smtp_host = os.environ.get('SMTP_HOST')
+    # smtp_port = int(os.environ.get('SMTP_PORT', 587))
+    # smtp_user = os.environ.get('SMTP_USER')
+    # smtp_pass = os.environ.get('SMTP_PASS')
+
+# Routes
+
+# Health check
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "MSLK VTC API", "status": "running"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
+# Auth Routes
+@api_router.post("/auth/register", response_model=TokenResponse)
+async def register(user_data: UserCreate):
+    # Check if email exists
+    existing = await db.users.find_one({"email": user_data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
+    # Create user
+    user = User(
+        email=user_data.email,
+        phone=user_data.phone,
+        name=user_data.name,
+        role=user_data.role
+    )
     
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
+    user_dict = user.model_dump()
+    user_dict["password_hash"] = hash_password(user_data.password)
+    user_dict["created_at"] = user_dict["created_at"].isoformat()
+    
+    await db.users.insert_one(user_dict)
+    
+    token = create_token(user.id, user.role.value)
+    return TokenResponse(token=token, user=user_to_response(user_dict))
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
+@api_router.post("/auth/login", response_model=TokenResponse)
+async def login(credentials: UserLogin):
+    user = await db.users.find_one({"email": credentials.email}, {"_id": 0})
+    if not user or not verify_password(credentials.password, user.get("password_hash", "")):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
+    if not user.get("is_active", True):
+        raise HTTPException(status_code=403, detail="Account disabled")
     
-    return status_checks
+    token = create_token(user["id"], user["role"])
+    return TokenResponse(token=token, user=user_to_response(user))
 
-# Include the router in the main app
+@api_router.get("/auth/me", response_model=UserResponse)
+async def get_me(current_user: dict = Depends(get_current_user)):
+    return user_to_response(current_user)
+
+# Trip Routes (Public - for clients)
+@api_router.post("/trips", response_model=TripResponse)
+async def create_trip(trip_data: TripCreate):
+    """Create a new trip booking (public endpoint for clients)"""
+    # Calculate distance and price
+    distance = calculate_distance(
+        trip_data.pickup_lat, trip_data.pickup_lng,
+        trip_data.dropoff_lat, trip_data.dropoff_lng
+    )
+    price = calculate_price(distance)
+    
+    trip = Trip(
+        client_name=trip_data.client_name,
+        client_phone=trip_data.client_phone,
+        client_email=trip_data.client_email,
+        pickup_address=trip_data.pickup_address,
+        pickup_lat=trip_data.pickup_lat,
+        pickup_lng=trip_data.pickup_lng,
+        dropoff_address=trip_data.dropoff_address,
+        dropoff_lat=trip_data.dropoff_lat,
+        dropoff_lng=trip_data.dropoff_lng,
+        pickup_datetime=trip_data.pickup_datetime,
+        vehicle_type=trip_data.vehicle_type,
+        luggage_count=trip_data.luggage_count,
+        passengers=trip_data.passengers,
+        notes=trip_data.notes,
+        distance_km=round(distance, 2),
+        price=price
+    )
+    
+    trip_dict = trip.model_dump()
+    trip_dict["pickup_datetime"] = trip_dict["pickup_datetime"].isoformat()
+    trip_dict["created_at"] = trip_dict["created_at"].isoformat()
+    trip_dict["updated_at"] = trip_dict["updated_at"].isoformat()
+    
+    await db.trips.insert_one(trip_dict)
+    
+    # Send confirmation email
+    await send_email_notification(
+        trip_data.client_email,
+        "MSLK VTC - Confirmation de réservation",
+        f"Votre course du {trip_data.pickup_datetime.strftime('%d/%m/%Y à %H:%M')} a été enregistrée. Prix estimé: {price}€"
+    )
+    
+    return trip_to_response(trip_dict)
+
+@api_router.get("/trips/calculate-price")
+async def calculate_trip_price(pickup_lat: float, pickup_lng: float, dropoff_lat: float, dropoff_lng: float):
+    """Calculate price preview"""
+    distance = calculate_distance(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng)
+    price = calculate_price(distance)
+    return {
+        "distance_km": round(distance, 2),
+        "price": price,
+        "base_price": BASE_PRICE,
+        "price_per_km": PRICE_PER_KM
+    }
+
+@api_router.get("/trips/client/{email}", response_model=List[TripResponse])
+async def get_client_trips(email: str):
+    """Get trip history for a client by email"""
+    trips = await db.trips.find({"client_email": email}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return [trip_to_response(t) for t in trips]
+
+# Driver Routes
+@api_router.get("/driver/trips", response_model=List[TripResponse])
+async def get_driver_trips(current_user: dict = Depends(get_current_user)):
+    """Get available trips for drivers (pending and assigned to them)"""
+    if current_user["role"] not in [UserRole.DRIVER.value, UserRole.ADMIN.value]:
+        raise HTTPException(status_code=403, detail="Drivers only")
+    
+    # Get pending trips and trips assigned to this driver
+    trips = await db.trips.find({
+        "$or": [
+            {"status": TripStatus.PENDING.value},
+            {"status": TripStatus.ASSIGNED.value, "driver_id": current_user["id"]},
+            {"driver_id": current_user["id"]}
+        ]
+    }, {"_id": 0}).sort("pickup_datetime", 1).to_list(100)
+    
+    return [trip_to_response(t) for t in trips]
+
+@api_router.post("/driver/trips/{trip_id}/accept", response_model=TripResponse)
+async def accept_trip(trip_id: str, current_user: dict = Depends(get_current_user)):
+    """Driver accepts a trip"""
+    if current_user["role"] != UserRole.DRIVER.value:
+        raise HTTPException(status_code=403, detail="Drivers only")
+    
+    trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    if trip["status"] not in [TripStatus.PENDING.value, TripStatus.ASSIGNED.value]:
+        raise HTTPException(status_code=400, detail="Trip cannot be accepted")
+    
+    if trip["status"] == TripStatus.ASSIGNED.value and trip.get("driver_id") != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Trip assigned to another driver")
+    
+    # Update trip
+    now = datetime.now(timezone.utc).isoformat()
+    await db.trips.update_one(
+        {"id": trip_id},
+        {"$set": {
+            "status": TripStatus.ACCEPTED.value,
+            "driver_id": current_user["id"],
+            "driver_name": current_user["name"],
+            "updated_at": now
+        }}
+    )
+    
+    # Update driver status
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {"status": DriverStatus.BUSY.value}}
+    )
+    
+    updated = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    return trip_to_response(updated)
+
+@api_router.post("/driver/trips/{trip_id}/refuse", response_model=dict)
+async def refuse_trip(trip_id: str, current_user: dict = Depends(get_current_user)):
+    """Driver refuses an assigned trip"""
+    if current_user["role"] != UserRole.DRIVER.value:
+        raise HTTPException(status_code=403, detail="Drivers only")
+    
+    trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    if trip.get("driver_id") != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not your trip")
+    
+    # Reset trip to pending
+    now = datetime.now(timezone.utc).isoformat()
+    await db.trips.update_one(
+        {"id": trip_id},
+        {"$set": {
+            "status": TripStatus.PENDING.value,
+            "driver_id": None,
+            "driver_name": None,
+            "updated_at": now
+        }}
+    )
+    
+    return {"message": "Trip refused"}
+
+@api_router.post("/driver/trips/{trip_id}/status", response_model=TripResponse)
+async def update_trip_status(trip_id: str, status_update: TripStatusUpdate, current_user: dict = Depends(get_current_user)):
+    """Update trip status (in_progress, completed)"""
+    if current_user["role"] != UserRole.DRIVER.value:
+        raise HTTPException(status_code=403, detail="Drivers only")
+    
+    trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    if trip.get("driver_id") != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not your trip")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    update_data = {
+        "status": status_update.status.value,
+        "updated_at": now
+    }
+    
+    # If completing trip
+    if status_update.status == TripStatus.COMPLETED:
+        update_data["completed_at"] = now
+        commission = trip["price"] * trip.get("commission_rate", 0.15)
+        update_data["commission_amount"] = round(commission, 2)
+        
+        # Update driver stats
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {
+                "$inc": {
+                    "total_trips": 1,
+                    "total_revenue": trip["price"]
+                },
+                "$set": {"status": DriverStatus.AVAILABLE.value}
+            }
+        )
+    elif status_update.status == TripStatus.IN_PROGRESS:
+        await db.users.update_one(
+            {"id": current_user["id"]},
+            {"$set": {"status": DriverStatus.EN_ROUTE.value}}
+        )
+    
+    await db.trips.update_one({"id": trip_id}, {"$set": update_data})
+    
+    updated = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    return trip_to_response(updated)
+
+@api_router.put("/driver/status", response_model=UserResponse)
+async def update_driver_status(status_update: DriverStatusUpdate, current_user: dict = Depends(get_current_user)):
+    """Update driver availability status"""
+    if current_user["role"] != UserRole.DRIVER.value:
+        raise HTTPException(status_code=403, detail="Drivers only")
+    
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {"status": status_update.status.value}}
+    )
+    
+    updated = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    return user_to_response(updated)
+
+@api_router.get("/driver/stats", response_model=DriverStats)
+async def get_driver_stats(current_user: dict = Depends(get_current_user)):
+    """Get driver statistics"""
+    if current_user["role"] != UserRole.DRIVER.value:
+        raise HTTPException(status_code=403, detail="Drivers only")
+    
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    week_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+    
+    driver_id = current_user["id"]
+    
+    # Daily revenue
+    daily_trips = await db.trips.find({
+        "driver_id": driver_id,
+        "status": TripStatus.COMPLETED.value,
+        "completed_at": {"$gte": today_start}
+    }, {"_id": 0, "price": 1}).to_list(1000)
+    daily_revenue = sum(t.get("price", 0) for t in daily_trips)
+    
+    # Weekly revenue
+    weekly_trips = await db.trips.find({
+        "driver_id": driver_id,
+        "status": TripStatus.COMPLETED.value,
+        "completed_at": {"$gte": week_start}
+    }, {"_id": 0, "price": 1}).to_list(1000)
+    weekly_revenue = sum(t.get("price", 0) for t in weekly_trips)
+    
+    # Monthly revenue
+    monthly_trips = await db.trips.find({
+        "driver_id": driver_id,
+        "status": TripStatus.COMPLETED.value,
+        "completed_at": {"$gte": month_start}
+    }, {"_id": 0, "price": 1, "commission_amount": 1}).to_list(1000)
+    monthly_revenue = sum(t.get("price", 0) for t in monthly_trips)
+    commission_due = sum(t.get("commission_amount", 0) for t in monthly_trips)
+    
+    # Total trips
+    total_trips = await db.trips.count_documents({"driver_id": driver_id})
+    completed_trips = await db.trips.count_documents({"driver_id": driver_id, "status": TripStatus.COMPLETED.value})
+    
+    return DriverStats(
+        daily_revenue=round(daily_revenue, 2),
+        weekly_revenue=round(weekly_revenue, 2),
+        monthly_revenue=round(monthly_revenue, 2),
+        total_trips=total_trips,
+        completed_trips=completed_trips,
+        commission_due=round(commission_due, 2)
+    )
+
+# Admin Routes
+@api_router.get("/admin/drivers", response_model=List[UserResponse])
+async def get_all_drivers(current_user: dict = Depends(get_current_user)):
+    """Get all drivers (admin only)"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    drivers = await db.users.find({"role": UserRole.DRIVER.value}, {"_id": 0, "password_hash": 0}).to_list(1000)
+    return [user_to_response(d) for d in drivers]
+
+@api_router.get("/admin/trips", response_model=List[TripResponse])
+async def get_all_trips(status: Optional[str] = None, current_user: dict = Depends(get_current_user)):
+    """Get all trips (admin only)"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    query = {}
+    if status:
+        query["status"] = status
+    
+    trips = await db.trips.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    return [trip_to_response(t) for t in trips]
+
+@api_router.post("/admin/trips/{trip_id}/assign", response_model=TripResponse)
+async def assign_trip(trip_id: str, assignment: TripAssign, current_user: dict = Depends(get_current_user)):
+    """Assign trip to driver (admin dispatch)"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    driver = await db.users.find_one({"id": assignment.driver_id, "role": UserRole.DRIVER.value}, {"_id": 0})
+    if not driver:
+        raise HTTPException(status_code=404, detail="Driver not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    commission_rate = assignment.commission_rate if assignment.commission_rate is not None else driver.get("commission_rate", 0.15)
+    
+    await db.trips.update_one(
+        {"id": trip_id},
+        {"$set": {
+            "status": TripStatus.ASSIGNED.value,
+            "driver_id": driver["id"],
+            "driver_name": driver["name"],
+            "commission_rate": commission_rate,
+            "updated_at": now
+        }}
+    )
+    
+    # Notify driver (email)
+    await send_email_notification(
+        driver["email"],
+        "MSLK VTC - Nouvelle course assignée",
+        f"Une nouvelle course vous a été assignée. Départ: {trip['pickup_address']}"
+    )
+    
+    updated = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    return trip_to_response(updated)
+
+@api_router.put("/admin/trips/{trip_id}/commission", response_model=TripResponse)
+async def update_trip_commission(trip_id: str, commission: CommissionUpdate, current_user: dict = Depends(get_current_user)):
+    """Update commission rate for a specific trip"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    commission_amount = trip["price"] * commission.commission_rate
+    
+    await db.trips.update_one(
+        {"id": trip_id},
+        {"$set": {
+            "commission_rate": commission.commission_rate,
+            "commission_amount": round(commission_amount, 2),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    updated = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    return trip_to_response(updated)
+
+@api_router.delete("/admin/trips/{trip_id}")
+async def cancel_trip(trip_id: str, current_user: dict = Depends(get_current_user)):
+    """Cancel a trip"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    result = await db.trips.update_one(
+        {"id": trip_id},
+        {"$set": {
+            "status": TripStatus.CANCELLED.value,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    return {"message": "Trip cancelled"}
+
+@api_router.put("/admin/drivers/{driver_id}/commission", response_model=UserResponse)
+async def update_driver_commission(driver_id: str, commission: CommissionUpdate, current_user: dict = Depends(get_current_user)):
+    """Update default commission rate for a driver"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    result = await db.users.update_one(
+        {"id": driver_id, "role": UserRole.DRIVER.value},
+        {"$set": {"commission_rate": commission.commission_rate}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Driver not found")
+    
+    updated = await db.users.find_one({"id": driver_id}, {"_id": 0})
+    return user_to_response(updated)
+
+@api_router.put("/admin/drivers/{driver_id}/notes", response_model=UserResponse)
+async def update_driver_notes(driver_id: str, note_update: DriverNoteUpdate, current_user: dict = Depends(get_current_user)):
+    """Add notes to a driver"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    result = await db.users.update_one(
+        {"id": driver_id, "role": UserRole.DRIVER.value},
+        {"$set": {"notes": note_update.notes}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Driver not found")
+    
+    updated = await db.users.find_one({"id": driver_id}, {"_id": 0})
+    return user_to_response(updated)
+
+@api_router.put("/admin/drivers/{driver_id}/toggle-active", response_model=UserResponse)
+async def toggle_driver_active(driver_id: str, current_user: dict = Depends(get_current_user)):
+    """Enable/disable a driver"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    driver = await db.users.find_one({"id": driver_id, "role": UserRole.DRIVER.value}, {"_id": 0})
+    if not driver:
+        raise HTTPException(status_code=404, detail="Driver not found")
+    
+    new_status = not driver.get("is_active", True)
+    await db.users.update_one(
+        {"id": driver_id},
+        {"$set": {"is_active": new_status}}
+    )
+    
+    updated = await db.users.find_one({"id": driver_id}, {"_id": 0})
+    return user_to_response(updated)
+
+@api_router.get("/admin/stats", response_model=StatsResponse)
+async def get_admin_stats(current_user: dict = Depends(get_current_user)):
+    """Get global statistics"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    total_trips = await db.trips.count_documents({})
+    completed_trips = await db.trips.count_documents({"status": TripStatus.COMPLETED.value})
+    pending_trips = await db.trips.count_documents({"status": TripStatus.PENDING.value})
+    
+    # Calculate totals
+    completed = await db.trips.find({"status": TripStatus.COMPLETED.value}, {"_id": 0, "price": 1, "commission_amount": 1}).to_list(10000)
+    total_revenue = sum(t.get("price", 0) for t in completed)
+    total_commission = sum(t.get("commission_amount", 0) for t in completed)
+    
+    # Acceptance rate
+    assigned_count = await db.trips.count_documents({"status": {"$in": [TripStatus.ASSIGNED.value, TripStatus.ACCEPTED.value, TripStatus.IN_PROGRESS.value, TripStatus.COMPLETED.value]}})
+    acceptance_rate = (assigned_count / total_trips * 100) if total_trips > 0 else 0
+    
+    return StatsResponse(
+        total_trips=total_trips,
+        completed_trips=completed_trips,
+        pending_trips=pending_trips,
+        total_revenue=round(total_revenue, 2),
+        total_commission=round(total_commission, 2),
+        acceptance_rate=round(acceptance_rate, 1)
+    )
+
+# Address autocomplete (OpenStreetMap Nominatim)
+@api_router.get("/geocode/search", response_model=List[AddressSearchResult])
+async def search_address(q: str):
+    """Search address using OpenStreetMap Nominatim"""
+    if len(q) < 3:
+        return []
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(
+                "https://nominatim.openstreetmap.org/search",
+                params={
+                    "q": q,
+                    "format": "json",
+                    "addressdetails": 1,
+                    "limit": 5,
+                    "countrycodes": "fr"
+                },
+                headers={"User-Agent": "MSLK-VTC-App"}
+            )
+            results = response.json()
+            return [
+                AddressSearchResult(
+                    display_name=r.get("display_name", ""),
+                    lat=float(r.get("lat", 0)),
+                    lon=float(r.get("lon", 0))
+                )
+                for r in results
+            ]
+        except Exception as e:
+            logger.error(f"Geocoding error: {e}")
+            return []
+
+# Create default admin on startup
+@app.on_event("startup")
+async def create_default_admin():
+    admin = await db.users.find_one({"role": UserRole.ADMIN.value})
+    if not admin:
+        admin_user = {
+            "id": str(uuid.uuid4()),
+            "email": "admin@mslk-vtc.fr",
+            "phone": "+33780996363",
+            "name": "Admin MSLK",
+            "role": UserRole.ADMIN.value,
+            "status": DriverStatus.OFFLINE.value,
+            "password_hash": hash_password("Admin123!"),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "total_trips": 0,
+            "total_revenue": 0.0,
+            "commission_rate": 0,
+            "notes": "",
+            "is_active": True
+        }
+        await db.users.insert_one(admin_user)
+        logger.info("Default admin created: admin@mslk-vtc.fr / Admin123!")
+
+# Include router
 app.include_router(api_router)
 
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -76,13 +882,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

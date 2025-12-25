@@ -1,34 +1,261 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* MSLK VTC App Styles */
+
+.App {
+    min-height: 100vh;
+    background-color: #000000;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+/* Logo Container */
+.logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.App-header {
-    background-color: #0f0f10;
+.logo-container img {
+    max-height: 80px;
+    width: auto;
+}
+
+/* Hero Section */
+.hero-section {
+    position: relative;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+}
+
+.hero-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.3;
+}
+
+.hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), rgba(0,0,0,0.9));
+}
+
+/* Form Container */
+.booking-form {
+    position: relative;
+    z-index: 10;
+    background: #121212;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    padding: 2rem;
+}
+
+/* Address Autocomplete */
+.address-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #1a1a1a;
+    border: 1px solid #D4AF37;
+    border-top: none;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 50;
+}
+
+.address-option {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+    transition: background-color 0.2s;
+}
+
+.address-option:hover {
+    background: rgba(212, 175, 55, 0.1);
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+    gap: 0.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
 }
 
-.App-link {
-    color: #61dafb;
+.status-pending {
+    background: rgba(212, 175, 55, 0.2);
+    color: #D4AF37;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
+.status-assigned {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3B82F6;
+}
+
+.status-accepted {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10B981;
+}
+
+.status-in-progress {
+    background: rgba(212, 175, 55, 0.3);
+    color: #D4AF37;
+    animation: pulse 2s infinite;
+}
+
+.status-completed {
+    background: rgba(16, 185, 129, 0.3);
+    color: #10B981;
+}
+
+.status-cancelled {
+    background: rgba(239, 68, 68, 0.2);
+    color: #EF4444;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+    display: grid;
+    gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
-    to {
-        transform: rotate(360deg);
+}
+
+@media (min-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(3, 1fr);
     }
+}
+
+/* Trip Card */
+.trip-card {
+    background: #121212;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.trip-card:hover {
+    border-color: rgba(212, 175, 55, 0.4);
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
+}
+
+.trip-card.new-trip {
+    animation: highlight 3s ease-out;
+}
+
+@keyframes highlight {
+    0% { box-shadow: 0 0 30px rgba(212, 175, 55, 0.5); }
+    100% { box-shadow: none; }
+}
+
+/* Stats Card */
+.stats-card {
+    background: #121212;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.stats-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #D4AF37;
+    font-family: 'Playfair Display', serif;
+}
+
+.stats-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #A1A1A1;
+    margin-top: 0.5rem;
+}
+
+/* Navigation */
+.nav-link {
+    color: #A1A1A1;
+    transition: color 0.3s;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    color: #D4AF37;
+}
+
+/* Footer */
+.footer-assistance {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #121212;
+    border-top: 1px solid rgba(212, 175, 55, 0.2);
+    padding: 1rem;
+    text-align: center;
+    z-index: 40;
+}
+
+.footer-assistance a {
+    color: #D4AF37;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+/* Table Styles */
+.table-mslk {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-mslk th {
+    background: rgba(212, 175, 55, 0.1);
+    color: #D4AF37;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.table-mslk td {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+}
+
+.table-mslk tr:hover td {
+    background: rgba(212, 175, 55, 0.05);
+}
+
+/* Pulse animation for new trips */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Mobile bottom padding for fixed footer */
+.pb-footer {
+    padding-bottom: 80px;
+}
+
+/* Loading Spinner */
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(212, 175, 55, 0.2);
+    border-top-color: #D4AF37;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
