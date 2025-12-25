@@ -694,9 +694,20 @@ export default function AdminDashboard() {
       <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
         <DialogContent className="bg-[#121212] border-[#D4AF37]">
           <DialogHeader>
-            <DialogTitle className="text-white font-heading">Assigner la course</DialogTitle>
+            <DialogTitle className="text-white font-heading">
+              {selectedTrip?.driver_id ? "Réassigner la course" : "Assigner la course"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {selectedTrip && (
+              <div className="bg-black/50 p-3 rounded text-sm border border-[#D4AF37]/20">
+                <p className="text-[#A1A1A1]">Client: <span className="text-white">{selectedTrip.client_name}</span></p>
+                <p className="text-[#A1A1A1]">Trajet: <span className="text-white">{selectedTrip.pickup_address?.split(",")[0]} → {selectedTrip.dropoff_address?.split(",")[0]}</span></p>
+                {selectedTrip.driver_name && (
+                  <p className="text-[#A1A1A1]">Chauffeur actuel: <span className="text-orange-400">{selectedTrip.driver_name}</span></p>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               <Label className="text-[#D4AF37]">Chauffeur</Label>
               <Select value={assignDriverId} onValueChange={setAssignDriverId}>
