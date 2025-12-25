@@ -510,29 +510,28 @@ export default function AdminDashboard() {
                             </Button>
                           )}
                           {trip.status !== "completed" && trip.status !== "cancelled" && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-[#D4AF37]"
-                                onClick={() => {
-                                  setCommissionTrip(trip);
-                                  setNewCommission(String(trip.commission_rate));
-                                  setCommissionDialogOpen(true);
-                                }}
-                              >
-                                <Edit size={14} />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="text-red-400"
-                                onClick={() => handleCancelTrip(trip.id)}
-                              >
-                                <X size={14} />
-                              </Button>
-                            </>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-[#D4AF37]"
+                              onClick={() => {
+                                setCommissionTrip(trip);
+                                setNewCommission(String(trip.commission_rate));
+                                setCommissionDialogOpen(true);
+                              }}
+                            >
+                              <Edit size={14} />
+                            </Button>
                           )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                            onClick={() => handleDeleteTrip(trip.id)}
+                            data-testid={`delete-trip-${trip.id}`}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
                         </div>
                       </td>
                     </tr>
