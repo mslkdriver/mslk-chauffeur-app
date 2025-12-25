@@ -318,6 +318,7 @@ def trip_to_response(trip: dict) -> TripResponse:
         driver_name=trip.get("driver_name"),
         commission_amount=trip.get("commission_amount", 0.0),
         commission_rate=trip.get("commission_rate", 0.15),
+        published=trip.get("published", False),
         created_at=format_datetime(trip.get("created_at")),
         updated_at=format_datetime(trip.get("updated_at")),
         completed_at=format_datetime(trip.get("completed_at"))
