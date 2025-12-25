@@ -584,8 +584,9 @@ export default function AdminDashboard() {
                     <th>Statut</th>
                     <th>Courses</th>
                     <th>CA Total</th>
-                    <th>Commission</th>
-                    <th>Notes</th>
+                    <th>Commission due</th>
+                    <th>Taux</th>
+                    <th>Email</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -613,9 +614,12 @@ export default function AdminDashboard() {
                       </td>
                       <td className="text-white">{driver.total_trips}</td>
                       <td className="text-[#D4AF37] font-bold">{driver.total_revenue.toFixed(0)}€</td>
+                      <td className="text-red-400 font-bold">{(driver.total_commission || 0).toFixed(2)}€</td>
                       <td className="text-white">{(driver.commission_rate * 100).toFixed(0)}%</td>
-                      <td className="max-w-[150px]">
-                        <p className="text-[#A1A1A1] text-xs truncate">{driver.notes || "-"}</p>
+                      <td>
+                        <span className={driver.email_notifications ? "text-emerald-400" : "text-gray-500"}>
+                          {driver.email_notifications ? "✓" : "✗"}
+                        </span>
                       </td>
                       <td>
                         <div className="flex gap-2">
