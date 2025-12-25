@@ -601,18 +601,24 @@ export default function DriverDashboard() {
               {completedTrips.map((trip) => (
                 <div 
                   key={trip.id} 
-                  className="bg-[#121212] border border-[#D4AF37]/10 p-4 flex items-center justify-between"
+                  className="bg-[#121212] border border-[#D4AF37]/10 p-4"
                   data-testid={`completed-trip-${trip.id}`}
                 >
-                  <div>
-                    <p className="text-white text-sm">{trip.pickup_address.split(",")[0]}</p>
-                    <p className="text-[#A1A1A1] text-xs">
-                      {formatDate(trip.pickup_datetime)} • {formatTime(trip.pickup_datetime)}
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-white text-sm">{trip.pickup_address.split(",")[0]}</p>
+                      <p className="text-[#A1A1A1] text-xs">
+                        {formatDate(trip.pickup_datetime)} • {formatTime(trip.pickup_datetime)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[#D4AF37] font-bold">{trip.price.toFixed(2)} €</p>
+                      <p className="text-[#A1A1A1] text-xs">{trip.distance_km.toFixed(1)} km</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[#D4AF37] font-bold">{trip.price.toFixed(2)} €</p>
-                    <p className="text-[#A1A1A1] text-xs">{trip.distance_km.toFixed(1)} km</p>
+                  <div className="flex justify-between mt-2 pt-2 border-t border-[#D4AF37]/10 text-xs">
+                    <span className="text-[#A1A1A1]">Commission ({((trip.commission_rate || 0.15) * 100).toFixed(0)}%)</span>
+                    <span className="text-red-400">{(trip.commission_amount || 0).toFixed(2)} €</span>
                   </div>
                 </div>
               ))}
