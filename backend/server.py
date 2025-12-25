@@ -163,6 +163,7 @@ class Trip(BaseModel):
     driver_name: Optional[str] = None
     commission_amount: float = 0.0
     commission_rate: float = 0.15
+    published: bool = False  # Course visible aux chauffeurs seulement si publiée
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     completed_at: Optional[datetime] = None
