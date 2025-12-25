@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
-import { MapPin, Calendar, Clock, Users, Briefcase, Car, Phone, Mail, User, Navigation } from "lucide-react";
+import { MapPin, Calendar, Clock, Users, Briefcase, Car, Phone, Mail, User, Navigation, LogIn } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -14,8 +14,21 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_gold-ride/artifacts/xlxl6dl3_537513862_122096432576993953_3681223875377855937_n.jpg";
 const HERO_BG = "https://images.unsplash.com/photo-1607332623489-e8ddd788072d?w=1920";
 
+// Debounce hook
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [clientUser, setClientUser] = useState(null);
+  
   const [formData, setFormData] = useState({
     client_name: "",
     client_phone: "",
@@ -34,62 +47,118 @@ export default function HomePage() {
     notes: ""
   });
 
+  // Address search states
+  const [pickupQuery, setPickupQuery] = useState("");
+  const [dropoffQuery, setDropoffQuery] = useState("");
   const [pickupSuggestions, setPickupSuggestions] = useState([]);
   const [dropoffSuggestions, setDropoffSuggestions] = useState([]);
   const [showPickupDropdown, setShowPickupDropdown] = useState(false);
   const [showDropoffDropdown, setShowDropoffDropdown] = useState(false);
+  const [pickupLoading, setPickupLoading] = useState(false);
+  const [dropoffLoading, setDropoffLoading] = useState(false);
   const [pricePreview, setPricePreview] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const pickupRef = useRef(null);
   const dropoffRef = useRef(null);
 
-  // Search address
-  const searchAddress = async (query, type) => {
-    if (query.length < 3) {
-      type === "pickup" ? setPickupSuggestions([]) : setDropoffSuggestions([]);
-      return;
-    }
+  // Debounced queries
+  const debouncedPickup = useDebounce(pickupQuery, 500);
+  const debouncedDropoff = useDebounce(dropoffQuery, 500);
 
-    try {
-      const response = await axios.get(`${API}/geocode/search`, { params: { q: query } });
-      if (type === "pickup") {
-        setPickupSuggestions(response.data);
-        setShowPickupDropdown(true);
-      } else {
-        setDropoffSuggestions(response.data);
-        setShowDropoffDropdown(true);
-      }
-    } catch (error) {
-      console.error("Address search error:", error);
+  // Check if client is logged in
+  useEffect(() => {
+    const token = localStorage.getItem("mslk_client_token");
+    const user = localStorage.getItem("mslk_client_user");
+    if (token && user) {
+      const userData = JSON.parse(user);
+      setIsLoggedIn(true);
+      setClientUser(userData);
+      setFormData(prev => ({
+        ...prev,
+        client_name: userData.name,
+        client_phone: userData.phone,
+        client_email: userData.email
+      }));
     }
+  }, []);
+
+  // Search pickup address
+  useEffect(() => {
+    const searchPickup = async () => {
+      if (debouncedPickup.length < 3) {
+        setPickupSuggestions([]);
+        return;
+      }
+      setPickupLoading(true);
+      try {
+        const response = await axios.get(`${API}/geocode/search`, { 
+          params: { q: debouncedPickup + ", France" } 
+        });
+        setPickupSuggestions(response.data);
+        setShowPickupDropdown(response.data.length > 0);
+      } catch (error) {
+        console.error("Pickup search error:", error);
+      } finally {
+        setPickupLoading(false);
+      }
+    };
+    searchPickup();
+  }, [debouncedPickup]);
+
+  // Search dropoff address
+  useEffect(() => {
+    const searchDropoff = async () => {
+      if (debouncedDropoff.length < 3) {
+        setDropoffSuggestions([]);
+        return;
+      }
+      setDropoffLoading(true);
+      try {
+        const response = await axios.get(`${API}/geocode/search`, { 
+          params: { q: debouncedDropoff + ", France" } 
+        });
+        setDropoffSuggestions(response.data);
+        setShowDropoffDropdown(response.data.length > 0);
+      } catch (error) {
+        console.error("Dropoff search error:", error);
+      } finally {
+        setDropoffLoading(false);
+      }
+    };
+    searchDropoff();
+  }, [debouncedDropoff]);
+
+  // Select pickup address
+  const selectPickupAddress = (address) => {
+    setFormData(prev => ({
+      ...prev,
+      pickup_address: address.display_name,
+      pickup_lat: parseFloat(address.lat),
+      pickup_lng: parseFloat(address.lon)
+    }));
+    setPickupQuery(address.display_name);
+    setShowPickupDropdown(false);
+    setPickupSuggestions([]);
   };
 
-  // Select address
-  const selectAddress = (address, type) => {
-    if (type === "pickup") {
-      setFormData({
-        ...formData,
-        pickup_address: address.display_name,
-        pickup_lat: address.lat,
-        pickup_lng: address.lon
-      });
-      setShowPickupDropdown(false);
-    } else {
-      setFormData({
-        ...formData,
-        dropoff_address: address.display_name,
-        dropoff_lat: address.lat,
-        dropoff_lng: address.lon
-      });
-      setShowDropoffDropdown(false);
-    }
+  // Select dropoff address
+  const selectDropoffAddress = (address) => {
+    setFormData(prev => ({
+      ...prev,
+      dropoff_address: address.display_name,
+      dropoff_lat: parseFloat(address.lat),
+      dropoff_lng: parseFloat(address.lon)
+    }));
+    setDropoffQuery(address.display_name);
+    setShowDropoffDropdown(false);
+    setDropoffSuggestions([]);
   };
 
   // Calculate price preview
   useEffect(() => {
     const calculatePrice = async () => {
-      if (formData.pickup_lat && formData.dropoff_lat) {
+      if (formData.pickup_lat && formData.dropoff_lat && formData.pickup_lat !== 0 && formData.dropoff_lat !== 0) {
         try {
           const response = await axios.get(`${API}/trips/calculate-price`, {
             params: {
@@ -103,6 +172,8 @@ export default function HomePage() {
         } catch (error) {
           console.error("Price calculation error:", error);
         }
+      } else {
+        setPricePreview(null);
       }
     };
     calculatePrice();
@@ -112,8 +183,13 @@ export default function HomePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.pickup_lat || !formData.dropoff_lat) {
-      toast.error("Veuillez sélectionner les adresses de départ et d'arrivée");
+    if (!formData.pickup_lat || formData.pickup_lat === 0) {
+      toast.error("Veuillez sélectionner une adresse de départ dans la liste");
+      return;
+    }
+    
+    if (!formData.dropoff_lat || formData.dropoff_lat === 0) {
+      toast.error("Veuillez sélectionner une adresse d'arrivée dans la liste");
       return;
     }
 
@@ -167,6 +243,21 @@ export default function HomePage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Logout client
+  const handleLogout = () => {
+    localStorage.removeItem("mslk_client_token");
+    localStorage.removeItem("mslk_client_user");
+    setIsLoggedIn(false);
+    setClientUser(null);
+    setFormData(prev => ({
+      ...prev,
+      client_name: "",
+      client_phone: "",
+      client_email: ""
+    }));
+    toast.success("Déconnexion réussie");
+  };
+
   // Get min date (today)
   const today = new Date().toISOString().split('T')[0];
 
@@ -181,14 +272,32 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/80 to-black" />
         
         <div className="relative z-10 container mx-auto px-4 py-8">
-          {/* Logo */}
-          <div className="flex justify-center mb-8">
+          {/* Header with Logo and Client Login */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="w-24" />
             <img 
               src={LOGO_URL} 
               alt="MSLK VTC" 
               className="h-24 md:h-32 w-auto"
               data-testid="logo"
             />
+            <div className="w-24 flex justify-end">
+              {isLoggedIn ? (
+                <div className="flex items-center gap-2">
+                  <Link to="/client/espace" className="text-[#D4AF37] text-sm hover:underline">
+                    Mon espace
+                  </Link>
+                  <button onClick={handleLogout} className="text-[#A1A1A1] text-sm hover:text-red-400">
+                    Déconnexion
+                  </button>
+                </div>
+              ) : (
+                <Link to="/client/connexion" className="flex items-center gap-2 text-[#D4AF37] hover:text-[#B5952F] transition-colors" data-testid="client-login-link">
+                  <LogIn size={18} />
+                  <span className="text-sm hidden md:inline">Connexion</span>
+                </Link>
+              )}
+            </div>
           </div>
 
           {/* Title */}
@@ -218,6 +327,7 @@ export default function HomePage() {
                     value={formData.client_name}
                     onChange={(e) => setFormData({ ...formData, client_name: e.target.value })}
                     required
+                    disabled={isLoggedIn}
                   />
                 </div>
                 <div className="space-y-2">
@@ -232,6 +342,7 @@ export default function HomePage() {
                     value={formData.client_phone}
                     onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
                     required
+                    disabled={isLoggedIn}
                   />
                 </div>
               </div>
@@ -248,68 +359,93 @@ export default function HomePage() {
                   value={formData.client_email}
                   onChange={(e) => setFormData({ ...formData, client_email: e.target.value })}
                   required
+                  disabled={isLoggedIn}
                 />
               </div>
 
               {/* Addresses */}
               <div className="space-y-4">
+                {/* Pickup Address */}
                 <div className="space-y-2 relative" ref={pickupRef}>
                   <Label className="text-[#D4AF37] text-xs uppercase tracking-widest flex items-center gap-2">
                     <MapPin size={14} /> Adresse de départ
                   </Label>
-                  <Input
-                    data-testid="input-pickup"
-                    className="input-mslk"
-                    placeholder="Entrez l'adresse de départ"
-                    value={formData.pickup_address}
-                    onChange={(e) => {
-                      setFormData({ ...formData, pickup_address: e.target.value });
-                      searchAddress(e.target.value, "pickup");
-                    }}
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      data-testid="input-pickup"
+                      className="input-mslk"
+                      placeholder="Tapez une adresse (ex: Place de Jaude, Clermont)"
+                      value={pickupQuery}
+                      onChange={(e) => {
+                        setPickupQuery(e.target.value);
+                        setFormData(prev => ({ ...prev, pickup_address: e.target.value, pickup_lat: 0, pickup_lng: 0 }));
+                      }}
+                      onFocus={() => pickupSuggestions.length > 0 && setShowPickupDropdown(true)}
+                      required
+                    />
+                    {pickupLoading && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <div className="w-4 h-4 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
                   {showPickupDropdown && pickupSuggestions.length > 0 && (
-                    <div className="address-dropdown" data-testid="pickup-suggestions">
+                    <div className="absolute top-full left-0 right-0 bg-[#1a1a1a] border border-[#D4AF37] max-h-[200px] overflow-y-auto z-50" data-testid="pickup-suggestions">
                       {pickupSuggestions.map((s, i) => (
                         <div
                           key={i}
-                          className="address-option text-sm text-white"
-                          onClick={() => selectAddress(s, "pickup")}
+                          className="px-4 py-3 cursor-pointer border-b border-[#D4AF37]/10 hover:bg-[#D4AF37]/10 transition-colors"
+                          onClick={() => selectPickupAddress(s)}
                         >
-                          {s.display_name}
+                          <p className="text-white text-sm">{s.display_name}</p>
                         </div>
                       ))}
                     </div>
                   )}
+                  {formData.pickup_lat !== 0 && (
+                    <p className="text-emerald-400 text-xs mt-1">✓ Adresse sélectionnée</p>
+                  )}
                 </div>
 
+                {/* Dropoff Address */}
                 <div className="space-y-2 relative" ref={dropoffRef}>
                   <Label className="text-[#D4AF37] text-xs uppercase tracking-widest flex items-center gap-2">
                     <Navigation size={14} /> Adresse d'arrivée
                   </Label>
-                  <Input
-                    data-testid="input-dropoff"
-                    className="input-mslk"
-                    placeholder="Entrez l'adresse d'arrivée"
-                    value={formData.dropoff_address}
-                    onChange={(e) => {
-                      setFormData({ ...formData, dropoff_address: e.target.value });
-                      searchAddress(e.target.value, "dropoff");
-                    }}
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      data-testid="input-dropoff"
+                      className="input-mslk"
+                      placeholder="Tapez une adresse (ex: Gare SNCF Clermont)"
+                      value={dropoffQuery}
+                      onChange={(e) => {
+                        setDropoffQuery(e.target.value);
+                        setFormData(prev => ({ ...prev, dropoff_address: e.target.value, dropoff_lat: 0, dropoff_lng: 0 }));
+                      }}
+                      onFocus={() => dropoffSuggestions.length > 0 && setShowDropoffDropdown(true)}
+                      required
+                    />
+                    {dropoffLoading && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <div className="w-4 h-4 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
                   {showDropoffDropdown && dropoffSuggestions.length > 0 && (
-                    <div className="address-dropdown" data-testid="dropoff-suggestions">
+                    <div className="absolute top-full left-0 right-0 bg-[#1a1a1a] border border-[#D4AF37] max-h-[200px] overflow-y-auto z-50" data-testid="dropoff-suggestions">
                       {dropoffSuggestions.map((s, i) => (
                         <div
                           key={i}
-                          className="address-option text-sm text-white"
-                          onClick={() => selectAddress(s, "dropoff")}
+                          className="px-4 py-3 cursor-pointer border-b border-[#D4AF37]/10 hover:bg-[#D4AF37]/10 transition-colors"
+                          onClick={() => selectDropoffAddress(s)}
                         >
-                          {s.display_name}
+                          <p className="text-white text-sm">{s.display_name}</p>
                         </div>
                       ))}
                     </div>
+                  )}
+                  {formData.dropoff_lat !== 0 && (
+                    <p className="text-emerald-400 text-xs mt-1">✓ Adresse sélectionnée</p>
                   )}
                 </div>
               </div>
@@ -455,15 +591,15 @@ export default function HomePage() {
 
           {/* Quick Links */}
           <div className="flex justify-center gap-6 mt-8">
-            <a href="/chauffeur" className="nav-link text-sm hover:text-[#D4AF37] transition-colors">
+            <Link to="/client/connexion" className="nav-link text-sm hover:text-[#D4AF37] transition-colors">
+              Espace Client
+            </Link>
+            <Link to="/chauffeur" className="nav-link text-sm hover:text-[#D4AF37] transition-colors">
               Espace Chauffeur
-            </a>
-            <a href="/admin" className="nav-link text-sm hover:text-[#D4AF37] transition-colors">
+            </Link>
+            <Link to="/admin" className="nav-link text-sm hover:text-[#D4AF37] transition-colors">
               Administration
-            </a>
-            <a href="/historique" className="nav-link text-sm hover:text-[#D4AF37] transition-colors">
-              Mes Courses
-            </a>
+            </Link>
           </div>
         </div>
       </div>
