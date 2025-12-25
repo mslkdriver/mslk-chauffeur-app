@@ -553,18 +553,15 @@ export default function HomePage() {
                 />
               </div>
 
-              {/* Price Preview */}
-              {pricePreview && (
-                <div className="bg-black border border-[#D4AF37] p-4 text-center" data-testid="price-preview">
-                  <p className="text-[#A1A1A1] text-sm mb-1">Prix estimé</p>
-                  <p className="text-[#D4AF37] text-3xl font-heading font-bold">
-                    {pricePreview.price.toFixed(2)} €
-                  </p>
-                  <p className="text-[#A1A1A1] text-xs mt-1">
-                    {pricePreview.distance_km.toFixed(1)} km • {pricePreview.base_price}€ + {pricePreview.price_per_km}€/km
-                  </p>
-                </div>
-              )}
+              {/* Info prix */}
+              <div className="bg-black border border-[#D4AF37]/30 p-4 text-center">
+                <p className="text-[#D4AF37] text-sm font-medium mb-1">
+                  Prix sur confirmation
+                </p>
+                <p className="text-[#A1A1A1] text-xs">
+                  Le tarif vous sera communiqué par nos services après validation de votre demande
+                </p>
+              </div>
 
               {/* Submit */}
               <Button 
