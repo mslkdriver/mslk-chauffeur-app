@@ -299,6 +299,37 @@ export default function AdminDashboard() {
     }
   };
 
+  // Update driver total commission
+  const handleUpdateTotalCommission = async () => {
+    if (!selectedDriverForCommission) return;
+    
+    try {
+      await axios.put(
+        `${API}/admin/drivers/${selectedDriverForCommission.id}/total-commission`,
+        { total_commission: parseFloat(newTotalCommission) },
+        { headers: getAuthHeader() }
+      );
+      toast.success("Commission totale mise à jour !");
+      setCommissionTotalDialogOpen(false);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
+    }
+  };
+
+  // Delete client
+  const handleDeleteClient = async (clientId, clientName) => {
+    if (!window.confirm(`Supprimer définitivement le client ${clientName} ?`)) return;
+    
+    try {
+      await axios.delete(`${API}/admin/clients/${clientId}`, { headers: getAuthHeader() });
+      toast.success("Client supprimé");
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
+    }
+  };
+
   // Toggle driver active
   const handleToggleDriver = async (driverId) => {
     try {
