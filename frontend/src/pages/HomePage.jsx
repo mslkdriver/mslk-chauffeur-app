@@ -1,28 +1,19 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
-import { MapPin, Calendar, Clock, Users, Briefcase, Car, Phone, Mail, User, Navigation, LogIn } from "lucide-react";
+import { MapPin, Calendar, Clock, Users, Briefcase, Car, Phone, Mail, User, Navigation, LogIn, Zap } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Textarea } from "../components/ui/textarea";
+import { Checkbox } from "../components/ui/checkbox";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_gold-ride/artifacts/xlxl6dl3_537513862_122096432576993953_3681223875377855937_n.jpg";
 const HERO_BG = "https://images.unsplash.com/photo-1607332623489-e8ddd788072d?w=1920";
-
-// Debounce hook
-function useDebounce(value, delay) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-  useEffect(() => {
-    const handler = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-  return debouncedValue;
-}
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -43,16 +34,8 @@ export default function HomePage() {
     notes: ""
   });
 
-  // Now option
   const [isNow, setIsNow] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const pickupRef = useRef(null);
-  const dropoffRef = useRef(null);
-
-  // Debounced queries
-  const debouncedPickup = useDebounce(pickupQuery, 500);
-  const debouncedDropoff = useDebounce(dropoffQuery, 500);
 
   // Check if client is logged in
   useEffect(() => {
@@ -71,141 +54,50 @@ export default function HomePage() {
     }
   }, []);
 
-  // Search pickup address
-  useEffect(() => {
-    const searchPickup = async () => {
-      if (debouncedPickup.length < 2) {
-        setPickupSuggestions([]);
-        return;
-      }
-      setPickupLoading(true);
-      try {
-        const response = await axios.get(`${API}/geocode/search`, { 
-          params: { q: debouncedPickup } 
-        });
-        setPickupSuggestions(response.data);
-        setShowPickupDropdown(response.data.length > 0);
-      } catch (error) {
-        console.error("Pickup search error:", error);
-      } finally {
-        setPickupLoading(false);
-      }
-    };
-    searchPickup();
-  }, [debouncedPickup]);
-
-  // Search dropoff address
-  useEffect(() => {
-    const searchDropoff = async () => {
-      if (debouncedDropoff.length < 2) {
-        setDropoffSuggestions([]);
-        return;
-      }
-      setDropoffLoading(true);
-      try {
-        const response = await axios.get(`${API}/geocode/search`, { 
-          params: { q: debouncedDropoff } 
-        });
-        setDropoffSuggestions(response.data);
-        setShowDropoffDropdown(response.data.length > 0);
-      } catch (error) {
-        console.error("Dropoff search error:", error);
-      } finally {
-        setDropoffLoading(false);
-      }
-    };
-    searchDropoff();
-  }, [debouncedDropoff]);
-
-  // Select pickup address
-  const selectPickupAddress = (address) => {
-    setFormData(prev => ({
-      ...prev,
-      pickup_address: address.display_name,
-      pickup_lat: parseFloat(address.lat),
-      pickup_lng: parseFloat(address.lon)
-    }));
-    setPickupQuery(address.display_name);
-    setShowPickupDropdown(false);
-    setPickupSuggestions([]);
-  };
-
-  // Select dropoff address
-  const selectDropoffAddress = (address) => {
-    setFormData(prev => ({
-      ...prev,
-      dropoff_address: address.display_name,
-      dropoff_lat: parseFloat(address.lat),
-      dropoff_lng: parseFloat(address.lon)
-    }));
-    setDropoffQuery(address.display_name);
-    setShowDropoffDropdown(false);
-    setDropoffSuggestions([]);
-  };
-
-  // Calculate price preview
-  useEffect(() => {
-    const calculatePrice = async () => {
-      if (formData.pickup_lat && formData.dropoff_lat && formData.pickup_lat !== 0 && formData.dropoff_lat !== 0) {
-        try {
-          const response = await axios.get(`${API}/trips/calculate-price`, {
-            params: {
-              pickup_lat: formData.pickup_lat,
-              pickup_lng: formData.pickup_lng,
-              dropoff_lat: formData.dropoff_lat,
-              dropoff_lng: formData.dropoff_lng
-            }
-          });
-          setPricePreview(response.data);
-        } catch (error) {
-          console.error("Price calculation error:", error);
-        }
-      } else {
-        setPricePreview(null);
-      }
-    };
-    calculatePrice();
-  }, [formData.pickup_lat, formData.pickup_lng, formData.dropoff_lat, formData.dropoff_lng]);
-
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.pickup_lat || formData.pickup_lat === 0) {
-      toast.error("Veuillez sélectionner une adresse de départ dans la liste");
+    if (!formData.pickup_address) {
+      toast.error("Veuillez entrer une adresse de départ");
       return;
     }
     
-    if (!formData.dropoff_lat || formData.dropoff_lat === 0) {
-      toast.error("Veuillez sélectionner une adresse d'arrivée dans la liste");
+    if (!formData.dropoff_address) {
+      toast.error("Veuillez entrer une adresse d'arrivée");
       return;
     }
 
-    if (!formData.pickup_date || !formData.pickup_time) {
-      toast.error("Veuillez sélectionner la date et l'heure");
+    if (!isNow && (!formData.pickup_date || !formData.pickup_time)) {
+      toast.error("Veuillez sélectionner la date et l'heure ou cocher 'Maintenant'");
       return;
     }
 
     setLoading(true);
 
     try {
-      const pickup_datetime = new Date(`${formData.pickup_date}T${formData.pickup_time}`).toISOString();
+      let pickup_datetime;
+      if (isNow) {
+        pickup_datetime = new Date().toISOString();
+      } else {
+        pickup_datetime = new Date(`${formData.pickup_date}T${formData.pickup_time}`).toISOString();
+      }
       
       const response = await axios.post(`${API}/trips`, {
         client_name: formData.client_name,
         client_phone: formData.client_phone,
         client_email: formData.client_email,
         pickup_address: formData.pickup_address,
-        pickup_lat: formData.pickup_lat,
-        pickup_lng: formData.pickup_lng,
+        pickup_lat: 0,
+        pickup_lng: 0,
         dropoff_address: formData.dropoff_address,
-        dropoff_lat: formData.dropoff_lat,
-        dropoff_lng: formData.dropoff_lng,
+        dropoff_lat: 0,
+        dropoff_lng: 0,
         pickup_datetime,
         vehicle_type: formData.vehicle_type,
         luggage_count: parseInt(formData.luggage_count),
         passengers: parseInt(formData.passengers),
-        notes: formData.notes
+        notes: isNow ? `[MAINTENANT] ${formData.notes}` : formData.notes
       });
 
       toast.success("Réservation enregistrée !");
@@ -216,20 +108,6 @@ export default function HomePage() {
       setLoading(false);
     }
   };
-
-  // Click outside to close dropdowns
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (pickupRef.current && !pickupRef.current.contains(e.target)) {
-        setShowPickupDropdown(false);
-      }
-      if (dropoffRef.current && !dropoffRef.current.contains(e.target)) {
-        setShowDropoffDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   // Logout client
   const handleLogout = () => {
@@ -351,9 +229,8 @@ export default function HomePage() {
                 />
               </div>
 
-              {/* Addresses */}
+              {/* Addresses - Free text */}
               <div className="space-y-4">
-                {/* Pickup Address */}
                 <div className="space-y-2">
                   <Label className="text-[#D4AF37] text-xs uppercase tracking-widest flex items-center gap-2">
                     <MapPin size={14} /> Adresse de départ
@@ -368,7 +245,6 @@ export default function HomePage() {
                   />
                 </div>
 
-                {/* Dropoff Address */}
                 <div className="space-y-2">
                   <Label className="text-[#D4AF37] text-xs uppercase tracking-widest flex items-center gap-2">
                     <Navigation size={14} /> Adresse d'arrivée
@@ -384,36 +260,54 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Date/Time */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-[#D4AF37] text-xs uppercase tracking-widest flex items-center gap-2">
-                    <Calendar size={14} /> Date
-                  </Label>
-                  <Input
-                    data-testid="input-date"
-                    type="date"
-                    className="input-mslk"
-                    min={today}
-                    value={formData.pickup_date}
-                    onChange={(e) => setFormData({ ...formData, pickup_date: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[#D4AF37] text-xs uppercase tracking-widest flex items-center gap-2">
-                    <Clock size={14} /> Heure
-                  </Label>
-                  <Input
-                    data-testid="input-time"
-                    type="time"
-                    className="input-mslk"
-                    value={formData.pickup_time}
-                    onChange={(e) => setFormData({ ...formData, pickup_time: e.target.value })}
-                    required
-                  />
-                </div>
+              {/* Now option */}
+              <div className="flex items-center space-x-3 p-4 bg-black border border-[#D4AF37]/30 rounded">
+                <Checkbox 
+                  id="now" 
+                  checked={isNow}
+                  onCheckedChange={(checked) => setIsNow(checked)}
+                  className="border-[#D4AF37] data-[state=checked]:bg-[#D4AF37] data-[state=checked]:text-black"
+                  data-testid="checkbox-now"
+                />
+                <label htmlFor="now" className="flex items-center gap-2 text-white cursor-pointer">
+                  <Zap size={18} className="text-[#D4AF37]" />
+                  <span className="font-medium">Maintenant</span>
+                  <span className="text-[#A1A1A1] text-sm">(course immédiate)</span>
+                </label>
               </div>
+
+              {/* Date/Time - hidden if "Now" is checked */}
+              {!isNow && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-[#D4AF37] text-xs uppercase tracking-widest flex items-center gap-2">
+                      <Calendar size={14} /> Date
+                    </Label>
+                    <Input
+                      data-testid="input-date"
+                      type="date"
+                      className="input-mslk"
+                      min={today}
+                      value={formData.pickup_date}
+                      onChange={(e) => setFormData({ ...formData, pickup_date: e.target.value })}
+                      required={!isNow}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[#D4AF37] text-xs uppercase tracking-widest flex items-center gap-2">
+                      <Clock size={14} /> Heure
+                    </Label>
+                    <Input
+                      data-testid="input-time"
+                      type="time"
+                      className="input-mslk"
+                      value={formData.pickup_time}
+                      onChange={(e) => setFormData({ ...formData, pickup_time: e.target.value })}
+                      required={!isNow}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Vehicle & Passengers */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -510,7 +404,7 @@ export default function HomePage() {
                     Réservation en cours...
                   </span>
                 ) : (
-                  "Réserver maintenant"
+                  isNow ? "Réserver maintenant" : "Réserver"
                 )}
               </Button>
 
