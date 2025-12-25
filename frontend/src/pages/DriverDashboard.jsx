@@ -61,7 +61,8 @@ export default function DriverDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const previousTripsCount = useRef(0);
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const lastNotificationCheck = useRef(null);
 
   // Get token from localStorage
   const getAuthHeader = () => {
@@ -86,8 +87,41 @@ export default function DriverDashboard() {
     }
     
     setUser(userData);
+    setEmailNotifications(userData.email_notifications !== false);
     fetchData();
+    checkNotifications();
   }, [navigate]);
+
+  // Check for new notifications (from admin ring)
+  const checkNotifications = async () => {
+    try {
+      const response = await axios.get(`${API}/driver/notifications`, { headers: getAuthHeader() });
+      if (response.data.length > 0) {
+        // Play sound for new notifications
+        playNotificationSound();
+        toast.info("🔔 Nouvelle course disponible !", {
+          duration: 5000,
+          style: { background: '#D4AF37', color: '#000' }
+        });
+        
+        // Mark notifications as read
+        for (const notif of response.data) {
+          await axios.post(`${API}/driver/notifications/${notif.id}/read`, {}, { headers: getAuthHeader() });
+        }
+        
+        // Refresh data
+        fetchData();
+      }
+    } catch (error) {
+      console.error("Error checking notifications:", error);
+    }
+  };
+
+  // Check notifications every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(checkNotifications, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch trips and stats
   const fetchData = async () => {
@@ -98,20 +132,10 @@ export default function DriverDashboard() {
         axios.get(`${API}/auth/me`, { headers: getAuthHeader() })
       ]);
       
-      // Check for new trips (notification)
-      const newTrips = tripsRes.data.filter(t => 
-        t.status === "pending" || (t.status === "assigned" && t.driver_id === meRes.data.id)
-      );
-      
-      if (newTrips.length > previousTripsCount.current && previousTripsCount.current > 0) {
-        playNotificationSound();
-        toast.info("Nouvelle course disponible !");
-      }
-      previousTripsCount.current = newTrips.length;
-      
       setTrips(tripsRes.data);
       setStats(statsRes.data);
       setUser(meRes.data);
+      setEmailNotifications(meRes.data.email_notifications !== false);
       localStorage.setItem("mslk_user", JSON.stringify(meRes.data));
     } catch (error) {
       if (error.response?.status === 401) {
