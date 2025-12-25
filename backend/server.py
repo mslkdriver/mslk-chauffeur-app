@@ -870,6 +870,98 @@ async def update_trip_price(trip_id: str, price_update: PriceUpdate, current_use
     updated = await db.trips.find_one({"id": trip_id}, {"_id": 0})
     return trip_to_response(updated)
 
+# Ring/Alert all drivers for a trip
+@api_router.post("/admin/trips/{trip_id}/ring")
+async def ring_drivers(trip_id: str, current_user: dict = Depends(get_current_user)):
+    """Ring all active drivers for a trip - creates notification and optionally sends email"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    # Create notification for all active drivers
+    notification = {
+        "id": str(uuid.uuid4()),
+        "trip_id": trip_id,
+        "type": "new_trip",
+        "message": f"Nouvelle course : {trip['pickup_address'][:30]}... → {trip['dropoff_address'][:30]}...",
+        "price": trip.get("price", 0),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "read_by": []
+    }
+    
+    await db.notifications.insert_one(notification)
+    
+    # Get all active drivers with email notifications enabled
+    drivers = await db.users.find({
+        "role": UserRole.DRIVER.value,
+        "is_active": True,
+        "email_notifications": True
+    }, {"_id": 0, "email": 1, "name": 1}).to_list(100)
+    
+    # Send email to each driver
+    email_count = 0
+    for driver in drivers:
+        try:
+            await send_email_notification(
+                driver["email"],
+                "🔔 MSLK VTC - Nouvelle course disponible !",
+                f"Bonjour {driver['name']},\n\nUne nouvelle course est disponible !\n\nDépart : {trip['pickup_address']}\nArrivée : {trip['dropoff_address']}\nDate : {trip['pickup_datetime'][:16].replace('T', ' à ')}\n\nConnectez-vous à votre espace chauffeur pour l'accepter.\n\nL'équipe MSLK VTC"
+            )
+            email_count += 1
+        except Exception as e:
+            logger.error(f"Failed to send email to {driver['email']}: {e}")
+    
+    return {"message": f"Notification envoyée à {len(drivers)} chauffeurs ({email_count} emails)"}
+
+# Get notifications for a driver
+@api_router.get("/driver/notifications")
+async def get_driver_notifications(current_user: dict = Depends(get_current_user)):
+    """Get unread notifications for a driver"""
+    if current_user["role"] != UserRole.DRIVER.value:
+        raise HTTPException(status_code=403, detail="Drivers only")
+    
+    # Get notifications not read by this driver
+    notifications = await db.notifications.find(
+        {"read_by": {"$ne": current_user["id"]}},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(10)
+    
+    return notifications
+
+# Mark notification as read
+@api_router.post("/driver/notifications/{notification_id}/read")
+async def mark_notification_read(notification_id: str, current_user: dict = Depends(get_current_user)):
+    """Mark a notification as read by this driver"""
+    if current_user["role"] != UserRole.DRIVER.value:
+        raise HTTPException(status_code=403, detail="Drivers only")
+    
+    await db.notifications.update_one(
+        {"id": notification_id},
+        {"$addToSet": {"read_by": current_user["id"]}}
+    )
+    
+    return {"message": "Notification marked as read"}
+
+# Toggle email notifications for driver
+class EmailNotificationUpdate(BaseModel):
+    email_notifications: bool
+
+@api_router.put("/driver/email-notifications")
+async def update_email_notifications(update: EmailNotificationUpdate, current_user: dict = Depends(get_current_user)):
+    """Toggle email notifications for a driver"""
+    if current_user["role"] != UserRole.DRIVER.value:
+        raise HTTPException(status_code=403, detail="Drivers only")
+    
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {"email_notifications": update.email_notifications}}
+    )
+    
+    return {"message": "Préférences mises à jour", "email_notifications": update.email_notifications}
+
 @api_router.put("/admin/trips/{trip_id}/commission", response_model=TripResponse)
 async def update_trip_commission(trip_id: str, commission: CommissionUpdate, current_user: dict = Depends(get_current_user)):
     """Update commission rate for a specific trip"""
