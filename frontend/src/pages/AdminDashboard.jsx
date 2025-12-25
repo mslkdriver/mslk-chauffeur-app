@@ -611,11 +611,20 @@ export default function AdminDashboard() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className={driver.is_active ? "text-red-400" : "text-emerald-400"}
+                            className={driver.is_active ? "text-orange-400" : "text-emerald-400"}
                             onClick={() => handleToggleDriver(driver.id)}
                             data-testid={`toggle-driver-${driver.id}`}
                           >
                             {driver.is_active ? <Ban size={14} /> : <Check size={14} />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                            onClick={() => handleDeleteDriver(driver.id, driver.name)}
+                            data-testid={`delete-driver-${driver.id}`}
+                          >
+                            <Trash2 size={14} />
                           </Button>
                         </div>
                       </td>
