@@ -124,11 +124,7 @@ export default function AdminLogin() {
             </form>
           </div>
 
-          {/* Default credentials hint (remove in production) */}
-          <div className="mt-6 p-4 bg-[#121212] border border-[#D4AF37]/20 text-center">
-            <p className="text-[#A1A1A1] text-xs mb-1">Identifiants par défaut :</p>
-            <p className="text-[#D4AF37] text-sm font-mono">admin@mslk-vtc.fr / Admin123!</p>
-          </div>
+          {/* Help */}
         </div>
       </div>
     </div>
