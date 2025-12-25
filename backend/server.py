@@ -1187,6 +1187,27 @@ async def update_driver_total_commission(driver_id: str, update: TotalCommission
     updated = await db.users.find_one({"id": driver_id}, {"_id": 0})
     return user_to_response(updated)
 
+# Update driver total revenue (modify or reset)
+class TotalRevenueUpdate(BaseModel):
+    total_revenue: float
+
+@api_router.put("/admin/drivers/{driver_id}/total-revenue", response_model=UserResponse)
+async def update_driver_total_revenue(driver_id: str, update: TotalRevenueUpdate, current_user: dict = Depends(get_current_user)):
+    """Update or reset total revenue for a driver"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    result = await db.users.update_one(
+        {"id": driver_id, "role": UserRole.DRIVER.value},
+        {"$set": {"total_revenue": update.total_revenue}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Driver not found")
+    
+    updated = await db.users.find_one({"id": driver_id}, {"_id": 0})
+    return user_to_response(updated)
+
 # Get all clients for admin
 @api_router.get("/admin/clients")
 async def get_admin_clients(current_user: dict = Depends(get_current_user)):
