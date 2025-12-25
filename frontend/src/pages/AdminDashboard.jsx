@@ -527,11 +527,28 @@ export default function AdminDashboard() {
                               className="bg-[#D4AF37] text-black hover:bg-[#B5952F]"
                               onClick={() => {
                                 setSelectedTrip(trip);
+                                setAssignDriverId("");
+                                setAssignCommission("0.15");
                                 setAssignDialogOpen(true);
                               }}
                               data-testid={`assign-btn-${trip.id}`}
                             >
                               Assigner
+                            </Button>
+                          )}
+                          {(trip.status === "assigned" || trip.status === "accepted") && (
+                            <Button
+                              size="sm"
+                              className="bg-orange-500 text-white hover:bg-orange-600"
+                              onClick={() => {
+                                setSelectedTrip(trip);
+                                setAssignDriverId(trip.driver_id || "");
+                                setAssignCommission(String(trip.commission_rate || 0.15));
+                                setAssignDialogOpen(true);
+                              }}
+                              data-testid={`reassign-btn-${trip.id}`}
+                            >
+                              Réassigner
                             </Button>
                           )}
                           {trip.status !== "completed" && trip.status !== "cancelled" && (
