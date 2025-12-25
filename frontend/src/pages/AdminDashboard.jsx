@@ -781,6 +781,59 @@ export default function AdminDashboard() {
               </div>
             )}
           </TabsContent>
+
+          {/* Clients Tab */}
+          <TabsContent value="clients">
+            <div className="overflow-x-auto">
+              <table className="admin-table w-full">
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Contact</th>
+                    <th>Inscrit le</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clients.map((client) => (
+                    <tr key={client.id} data-testid={`client-row-${client.id}`}>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          <User size={14} className="text-[#D4AF37]" />
+                          <p className="text-white">{client.name}</p>
+                        </div>
+                      </td>
+                      <td>
+                        <p className="text-white text-sm">{client.email}</p>
+                        <p className="text-[#A1A1A1] text-xs">{client.phone}</p>
+                      </td>
+                      <td className="text-[#A1A1A1] text-sm">
+                        {client.created_at ? new Date(client.created_at).toLocaleDateString("fr-FR") : "-"}
+                      </td>
+                      <td>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                          onClick={() => handleDeleteClient(client.id, client.name)}
+                          data-testid={`delete-client-${client.id}`}
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {clients.length === 0 && (
+              <div className="text-center py-12">
+                <User className="w-12 h-12 text-[#D4AF37] mx-auto mb-4 opacity-50" />
+                <p className="text-[#A1A1A1]">Aucun client inscrit</p>
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
 
