@@ -954,37 +954,63 @@ async def get_admin_stats(current_user: dict = Depends(get_current_user)):
         acceptance_rate=round(acceptance_rate, 1)
     )
 
-# Address autocomplete (OpenStreetMap Nominatim)
+# Address autocomplete (Photon API - OpenStreetMap based, more reliable)
 @api_router.get("/geocode/search", response_model=List[AddressSearchResult])
 async def search_address(q: str):
-    """Search address using OpenStreetMap Nominatim"""
+    """Search address using Photon API (OpenStreetMap based)"""
     if len(q) < 3:
         return []
     
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         try:
+            # Try Photon API first (more reliable)
             response = await client.get(
-                "https://nominatim.openstreetmap.org/search",
+                "https://photon.komoot.io/api/",
                 params={
                     "q": q,
-                    "format": "json",
-                    "addressdetails": 1,
                     "limit": 5,
-                    "countrycodes": "fr"
-                },
-                headers={"User-Agent": "MSLK-VTC-App"}
+                    "lang": "fr",
+                    "lat": 45.7772,  # Clermont-Ferrand center
+                    "lon": 3.0870
+                }
             )
-            results = response.json()
-            return [
-                AddressSearchResult(
-                    display_name=r.get("display_name", ""),
-                    lat=float(r.get("lat", 0)),
-                    lon=float(r.get("lon", 0))
-                )
-                for r in results
-            ]
+            data = response.json()
+            results = []
+            for feature in data.get("features", []):
+                props = feature.get("properties", {})
+                coords = feature.get("geometry", {}).get("coordinates", [0, 0])
+                
+                # Build display name
+                parts = []
+                if props.get("name"):
+                    parts.append(props["name"])
+                if props.get("street"):
+                    parts.append(props["street"])
+                if props.get("city"):
+                    parts.append(props["city"])
+                if props.get("postcode"):
+                    parts.append(props["postcode"])
+                if props.get("country"):
+                    parts.append(props["country"])
+                
+                display_name = ", ".join(parts) if parts else props.get("name", "Adresse inconnue")
+                
+                results.append(AddressSearchResult(
+                    display_name=display_name,
+                    lat=float(coords[1]) if len(coords) > 1 else 0,
+                    lon=float(coords[0]) if len(coords) > 0 else 0
+                ))
+            return results
+            
         except Exception as e:
             logger.error(f"Geocoding error: {e}")
+            # Fallback: return some default Clermont-Ferrand locations
+            if "clermont" in q.lower():
+                return [
+                    AddressSearchResult(display_name="Place de Jaude, Clermont-Ferrand, 63000", lat=45.7772, lon=3.0870),
+                    AddressSearchResult(display_name="Gare SNCF Clermont-Ferrand, 63000", lat=45.7789, lon=3.1003),
+                    AddressSearchResult(display_name="Aéroport Clermont-Ferrand Auvergne", lat=45.7867, lon=3.1631)
+                ]
             return []
 
 # Create default admin on startup
