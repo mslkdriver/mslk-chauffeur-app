@@ -888,23 +888,39 @@ async def update_trip_commission(trip_id: str, commission: CommissionUpdate, cur
     return trip_to_response(updated)
 
 @api_router.delete("/admin/trips/{trip_id}")
-async def cancel_trip(trip_id: str, current_user: dict = Depends(get_current_user)):
-    """Cancel a trip"""
+async def delete_trip(trip_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a trip completely"""
     if current_user["role"] != UserRole.ADMIN.value:
         raise HTTPException(status_code=403, detail="Admins only")
     
-    result = await db.trips.update_one(
-        {"id": trip_id},
-        {"$set": {
-            "status": TripStatus.CANCELLED.value,
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }}
-    )
+    result = await db.trips.delete_one({"id": trip_id})
     
-    if result.modified_count == 0:
+    if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Trip not found")
     
-    return {"message": "Trip cancelled"}
+    return {"message": "Course supprimée"}
+
+@api_router.delete("/admin/drivers/{driver_id}")
+async def delete_driver(driver_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a driver completely"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    # Check if driver has active trips
+    active_trips = await db.trips.count_documents({
+        "driver_id": driver_id,
+        "status": {"$in": [TripStatus.ASSIGNED.value, TripStatus.ACCEPTED.value, TripStatus.IN_PROGRESS.value]}
+    })
+    
+    if active_trips > 0:
+        raise HTTPException(status_code=400, detail="Ce chauffeur a des courses en cours")
+    
+    result = await db.users.delete_one({"id": driver_id, "role": UserRole.DRIVER.value})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Driver not found")
+    
+    return {"message": "Chauffeur supprimé"}
 
 @api_router.put("/admin/drivers/{driver_id}/commission", response_model=UserResponse)
 async def update_driver_commission(driver_id: str, commission: CommissionUpdate, current_user: dict = Depends(get_current_user)):
