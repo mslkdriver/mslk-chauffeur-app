@@ -1,12 +1,15 @@
 require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
+const app = require('./app');
 const http = require('http');
 const socketIo = require('socket.io');
+const mongoose = require('mongoose');
 
-const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Créer le serveur HTTP
 const server = http.createServer(app);
+
+// Initialiser Socket.IO
 const io = socketIo(server, {
   cors: {
     origin: '*',
@@ -14,31 +17,23 @@ const io = socketIo(server, {
   }
 });
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-
-// Routes
-const authRoutes = require('./routes/auth');
-const rideRoutes = require('./routes/rides');
-
-app.use('/api/auth', authRoutes);
-app.use('/api/rides', rideRoutes);
-
-// Socket.IO pour les courses en temps réel
+// Gestion des connexions Socket.IO
 io.on('connection', (socket) => {
-  console.log('Chauffeur connecté:', socket.id);
-  
+  console.log('Nouveau chauffeur connecté:', socket.id);
+
+  // Chauffeur en ligne
   socket.on('driver_online', (driverId) => {
+    console.log('Chauffeur en ligne:', driverId);
     socket.join(`driver_${driverId}`);
-    console.log(`Chauffeur ${driverId} en ligne`);
   });
-  
+
+  // Déconnexion
   socket.on('disconnect', () => {
     console.log('Chauffeur déconnecté:', socket.id);
   });
 });
 
+// Rendre io accessible dans l'app
 app.set('io', io);
 
 // MongoDB Connection
@@ -46,7 +41,8 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mslk-chau
   .then(() => console.log('MongoDB connecté'))
   .catch(err => console.error('Erreur MongoDB:', err));
 
-const PORT = process.env.PORT || 3000;
+// Démarrer le serveur
 server.listen(PORT, () => {
-  console.log(`Serveur démarré sur le port ${PORT}`);
+  console.log(`🚀 Serveur MSLK Chauffeur démarré sur le port ${PORT}`);
+  console.log(`📍 Environnement: ${process.env.NODE_ENV || 'development'}`);
 });
