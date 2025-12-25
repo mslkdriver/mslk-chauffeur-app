@@ -314,15 +314,78 @@ def trip_to_response(trip: dict) -> TripResponse:
         completed_at=format_datetime(trip.get("completed_at"))
     )
 
-# Email notification (simplified - can be configured with SMTP)
+# Email notification via Gmail SMTP
 async def send_email_notification(to_email: str, subject: str, body: str):
-    """Send email notification - logs for now, configure SMTP for production"""
-    logger.info(f"Email to {to_email}: {subject} - {body}")
-    # In production, configure SMTP:
-    # smtp_host = os.environ.get('SMTP_HOST')
-    # smtp_port = int(os.environ.get('SMTP_PORT', 587))
-    # smtp_user = os.environ.get('SMTP_USER')
-    # smtp_pass = os.environ.get('SMTP_PASS')
+    """Send email notification via SMTP"""
+    smtp_host = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
+    smtp_port = int(os.environ.get('SMTP_PORT', 587))
+    smtp_user = os.environ.get('SMTP_USER')
+    smtp_pass = os.environ.get('SMTP_PASS')
+    smtp_from = os.environ.get('SMTP_FROM', smtp_user)
+    
+    if not smtp_user or not smtp_pass:
+        logger.warning(f"SMTP not configured - Email to {to_email}: {subject}")
+        return
+    
+    try:
+        # Create HTML email
+        message = MIMEMultipart("alternative")
+        message["Subject"] = subject
+        message["From"] = f"MSLK VTC <{smtp_from}>"
+        message["To"] = to_email
+        
+        # HTML content with MSLK branding
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: 'Helvetica', Arial, sans-serif; background-color: #000000; color: #ffffff; padding: 20px; }}
+                .container {{ max-width: 600px; margin: 0 auto; background-color: #121212; border: 1px solid #D4AF37; padding: 30px; }}
+                .header {{ text-align: center; margin-bottom: 30px; }}
+                .logo {{ font-size: 32px; color: #D4AF37; font-weight: bold; }}
+                .content {{ color: #ffffff; line-height: 1.6; }}
+                .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #D4AF37; text-align: center; color: #A1A1A1; font-size: 12px; }}
+                .gold {{ color: #D4AF37; }}
+                .btn {{ display: inline-block; background-color: #D4AF37; color: #000000; padding: 12px 24px; text-decoration: none; font-weight: bold; margin-top: 20px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <div class="logo">MSLK VTC</div>
+                    <p class="gold">L'élégance et le confort à chaque trajet</p>
+                </div>
+                <div class="content">
+                    {body.replace(chr(10), '<br>')}
+                </div>
+                <div class="footer">
+                    <p>Assistance MSLK : <span class="gold">+33 7 80 99 63 63</span></p>
+                    <p>Clermont-Ferrand | © 2024 MSLK VTC</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        text_part = MIMEText(body, "plain")
+        html_part = MIMEText(html_body, "html")
+        message.attach(text_part)
+        message.attach(html_part)
+        
+        # Send via SMTP
+        await aiosmtplib.send(
+            message,
+            hostname=smtp_host,
+            port=smtp_port,
+            username=smtp_user,
+            password=smtp_pass,
+            start_tls=True
+        )
+        logger.info(f"Email sent to {to_email}: {subject}")
+        
+    except Exception as e:
+        logger.error(f"Failed to send email to {to_email}: {e}")
 
 # Routes
 
