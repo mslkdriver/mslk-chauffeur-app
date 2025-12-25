@@ -1,8 +1,8 @@
 {
-  "timestamp": "2025-12-25T18:19:57.119306",
-  "total_tests": 23,
-  "passed_tests": 23,
-  "success_rate": 100.0,
+  "timestamp": "2025-12-25T22:44:13.141630",
+  "total_tests": 33,
+  "passed_tests": 32,
+  "success_rate": 96.96969696969697,
   "results": [
     {
       "test": "API Health Check",
@@ -46,7 +46,7 @@
     },
     {
       "test": "Trip - Price & Distance Calculated",
-      "success": true,
+      "success": false,
       "details": ""
     },
     {
@@ -80,6 +80,31 @@
       "details": ""
     },
     {
+      "test": "Admin - Ring Drivers for Trip",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Ring Response - Contains Driver Count",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Admin - Set Trip Price",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Admin - Update Trip Commission",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Commission Calculation - Amount Correct",
+      "success": true,
+      "details": "Expected: 10.0\u20ac, Got: 10.0\u20ac"
+    },
+    {
       "test": "Driver - Get Available Trips",
       "success": true,
       "details": "Status: 200"
@@ -98,6 +123,31 @@
       "test": "Driver Stats - Required Fields",
       "success": true,
       "details": ""
+    },
+    {
+      "test": "Driver - Disable Email Notifications",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Driver - Enable Email Notifications",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Email Toggle - Settings Updated",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Driver - Get Notifications",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Driver - Mark Notification Read",
+      "success": true,
+      "details": "Status: 200"
     },
     {
       "test": "Driver - Accept Trip",
