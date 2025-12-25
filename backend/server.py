@@ -829,6 +829,40 @@ async def assign_trip(trip_id: str, assignment: TripAssign, current_user: dict =
     updated = await db.trips.find_one({"id": trip_id}, {"_id": 0})
     return trip_to_response(updated)
 
+class PriceUpdate(BaseModel):
+    price: float
+
+@api_router.put("/admin/trips/{trip_id}/price", response_model=TripResponse)
+async def update_trip_price(trip_id: str, price_update: PriceUpdate, current_user: dict = Depends(get_current_user)):
+    """Set/update price for a trip (admin confirms price)"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    commission_amount = price_update.price * trip.get("commission_rate", 0.15)
+    
+    await db.trips.update_one(
+        {"id": trip_id},
+        {"$set": {
+            "price": price_update.price,
+            "commission_amount": round(commission_amount, 2),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    # Notify client of confirmed price
+    await send_email_notification(
+        trip["client_email"],
+        "MSLK VTC - Tarif confirmé",
+        f"Bonjour {trip['client_name']},\n\nLe tarif de votre course du {trip['pickup_datetime'][:10]} a été confirmé à {price_update.price:.2f}€.\n\nDépart : {trip['pickup_address']}\nArrivée : {trip['dropoff_address']}\n\nPaiement à effectuer directement au chauffeur.\n\nMerci de votre confiance.\n\nL'équipe MSLK VTC"
+    )
+    
+    updated = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    return trip_to_response(updated)
+
 @api_router.put("/admin/trips/{trip_id}/commission", response_model=TripResponse)
 async def update_trip_commission(trip_id: str, commission: CommissionUpdate, current_user: dict = Depends(get_current_user)):
     """Update commission rate for a specific trip"""
