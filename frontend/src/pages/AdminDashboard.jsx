@@ -209,6 +209,20 @@ export default function AdminDashboard() {
     }
   };
 
+  // Ring drivers for a trip
+  const handleRingDrivers = async (tripId) => {
+    try {
+      const response = await axios.post(
+        `${API}/admin/trips/${tripId}/ring`,
+        {},
+        { headers: getAuthHeader() }
+      );
+      toast.success(response.data.message);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur lors de l'envoi");
+    }
+  };
+
   // Update driver
   const handleUpdateDriver = async () => {
     if (!selectedDriver) return;
