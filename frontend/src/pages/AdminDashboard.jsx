@@ -443,8 +443,27 @@ export default function AdminDashboard() {
                         <p className="text-[#A1A1A1] text-xs truncate">→ {trip.dropoff_address.split(",")[0]}</p>
                       </td>
                       <td>
-                        <p className="text-[#D4AF37] font-bold">{trip.price.toFixed(2)}€</p>
-                        <p className="text-[#A1A1A1] text-xs">{trip.distance_km.toFixed(1)} km</p>
+                        {trip.price > 0 ? (
+                          <>
+                            <p className="text-[#D4AF37] font-bold">{trip.price.toFixed(2)}€</p>
+                            <p className="text-[#A1A1A1] text-xs">{trip.distance_km.toFixed(1)} km</p>
+                          </>
+                        ) : (
+                          <Button
+                            size="sm"
+                            className="bg-emerald-500 text-white hover:bg-emerald-600"
+                            onClick={() => {
+                              setPriceTrip(trip);
+                              // Calculate suggested price
+                              const suggestedPrice = (5 + trip.distance_km * 2).toFixed(2);
+                              setNewPrice(suggestedPrice);
+                              setPriceDialogOpen(true);
+                            }}
+                            data-testid={`set-price-btn-${trip.id}`}
+                          >
+                            Définir prix
+                          </Button>
+                        )}
                       </td>
                       <td>
                         <span className={`status-badge ${statusColors[trip.status]}`}>
