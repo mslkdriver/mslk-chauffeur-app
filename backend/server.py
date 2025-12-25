@@ -1075,6 +1075,80 @@ async def toggle_driver_active(driver_id: str, current_user: dict = Depends(get_
     updated = await db.users.find_one({"id": driver_id}, {"_id": 0})
     return user_to_response(updated)
 
+# Update driver total commission (modify or reset)
+class TotalCommissionUpdate(BaseModel):
+    total_commission: float
+
+@api_router.put("/admin/drivers/{driver_id}/total-commission", response_model=UserResponse)
+async def update_driver_total_commission(driver_id: str, update: TotalCommissionUpdate, current_user: dict = Depends(get_current_user)):
+    """Update or reset total commission for a driver"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    result = await db.users.update_one(
+        {"id": driver_id, "role": UserRole.DRIVER.value},
+        {"$set": {"total_commission": update.total_commission}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Driver not found")
+    
+    updated = await db.users.find_one({"id": driver_id}, {"_id": 0})
+    return user_to_response(updated)
+
+# Get all clients for admin
+@api_router.get("/admin/clients")
+async def get_admin_clients(current_user: dict = Depends(get_current_user)):
+    """Get all registered clients"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    clients = await db.clients.find({}, {"_id": 0, "password_hash": 0}).to_list(1000)
+    return clients
+
+# Delete a client
+@api_router.delete("/admin/clients/{client_id}")
+async def delete_client(client_id: str, current_user: dict = Depends(get_current_user)):
+    """Delete a client"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    result = await db.clients.delete_one({"id": client_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    return {"message": "Client supprimé"}
+
+# Get admin notifications (new bookings)
+@api_router.get("/admin/notifications")
+async def get_admin_notifications(current_user: dict = Depends(get_current_user)):
+    """Get unread notifications for admin (new bookings)"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    # Get notifications not read by admin
+    notifications = await db.admin_notifications.find(
+        {"read": False},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(20)
+    
+    return notifications
+
+# Mark admin notification as read
+@api_router.post("/admin/notifications/{notification_id}/read")
+async def mark_admin_notification_read(notification_id: str, current_user: dict = Depends(get_current_user)):
+    """Mark an admin notification as read"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    await db.admin_notifications.update_one(
+        {"id": notification_id},
+        {"$set": {"read": True}}
+    )
+    
+    return {"message": "Notification marked as read"}
+
 @api_router.get("/admin/stats", response_model=StatsResponse)
 async def get_admin_stats(current_user: dict = Depends(get_current_user)):
     """Get global statistics"""
