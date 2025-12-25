@@ -954,64 +954,83 @@ async def get_admin_stats(current_user: dict = Depends(get_current_user)):
         acceptance_rate=round(acceptance_rate, 1)
     )
 
-# Address autocomplete (Photon API - OpenStreetMap based, more reliable)
+# Address autocomplete - Local database with common addresses
+CLERMONT_ADDRESSES = [
+    {"name": "Place de Jaude, Clermont-Ferrand", "lat": 45.7772, "lon": 3.0870},
+    {"name": "Gare SNCF Clermont-Ferrand", "lat": 45.7789, "lon": 3.1003},
+    {"name": "Aéroport Clermont-Ferrand Auvergne", "lat": 45.7867, "lon": 3.1631},
+    {"name": "CHU Clermont-Ferrand Gabriel Montpied", "lat": 45.7534, "lon": 3.1134},
+    {"name": "Centre Jaude, Clermont-Ferrand", "lat": 45.7765, "lon": 3.0875},
+    {"name": "Cathédrale Notre-Dame-de-l'Assomption, Clermont-Ferrand", "lat": 45.7791, "lon": 3.0847},
+    {"name": "Stade Gabriel Montpied, Clermont-Ferrand", "lat": 45.7628, "lon": 3.1265},
+    {"name": "Université Clermont Auvergne, Campus des Cézeaux", "lat": 45.7601, "lon": 3.1108},
+    {"name": "Vulcania, Saint-Ours-les-Roches", "lat": 45.8142, "lon": 2.9408},
+    {"name": "Place Delille, Clermont-Ferrand", "lat": 45.7784, "lon": 3.0823},
+    {"name": "Les Puys, Clermont-Ferrand", "lat": 45.7723, "lon": 3.0612},
+    {"name": "Royat, Puy-de-Dôme", "lat": 45.7669, "lon": 3.0494},
+    {"name": "Chamalières, Puy-de-Dôme", "lat": 45.7742, "lon": 3.0625},
+    {"name": "Cournon-d'Auvergne, Puy-de-Dôme", "lat": 45.7356, "lon": 3.1969},
+    {"name": "Riom, Puy-de-Dôme", "lat": 45.8931, "lon": 3.1133},
+    {"name": "Vichy, Allier", "lat": 46.1283, "lon": 3.4258},
+    {"name": "Place du 1er Mai, Clermont-Ferrand", "lat": 45.7808, "lon": 3.0839},
+    {"name": "Montferrand, Clermont-Ferrand", "lat": 45.7917, "lon": 3.1139},
+    {"name": "La Pardieu, Clermont-Ferrand", "lat": 45.7583, "lon": 3.1319},
+    {"name": "Croix de Neyrat, Clermont-Ferrand", "lat": 45.8014, "lon": 3.0953},
+    {"name": "Zenith d'Auvergne, Cournon-d'Auvergne", "lat": 45.7389, "lon": 3.1975},
+    {"name": "Polydome, Clermont-Ferrand", "lat": 45.7661, "lon": 3.1167},
+    {"name": "Maison de la Culture, Clermont-Ferrand", "lat": 45.7747, "lon": 3.0992},
+    {"name": "Boulevard Trudaine, Clermont-Ferrand", "lat": 45.7756, "lon": 3.0847},
+    {"name": "Avenue Julien, Clermont-Ferrand", "lat": 45.7739, "lon": 3.0772},
+]
+
 @api_router.get("/geocode/search", response_model=List[AddressSearchResult])
 async def search_address(q: str):
-    """Search address using Photon API (OpenStreetMap based)"""
-    if len(q) < 3:
+    """Search address - local database for Clermont-Ferrand region"""
+    if len(q) < 2:
         return []
     
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        try:
-            # Try Photon API first (more reliable)
-            response = await client.get(
-                "https://photon.komoot.io/api/",
-                params={
-                    "q": q,
-                    "limit": 5,
-                    "lang": "fr",
-                    "lat": 45.7772,  # Clermont-Ferrand center
-                    "lon": 3.0870
-                }
-            )
-            data = response.json()
-            results = []
-            for feature in data.get("features", []):
-                props = feature.get("properties", {})
-                coords = feature.get("geometry", {}).get("coordinates", [0, 0])
-                
-                # Build display name
-                parts = []
-                if props.get("name"):
-                    parts.append(props["name"])
-                if props.get("street"):
-                    parts.append(props["street"])
-                if props.get("city"):
-                    parts.append(props["city"])
-                if props.get("postcode"):
-                    parts.append(props["postcode"])
-                if props.get("country"):
-                    parts.append(props["country"])
-                
-                display_name = ", ".join(parts) if parts else props.get("name", "Adresse inconnue")
-                
-                results.append(AddressSearchResult(
-                    display_name=display_name,
-                    lat=float(coords[1]) if len(coords) > 1 else 0,
-                    lon=float(coords[0]) if len(coords) > 0 else 0
-                ))
-            return results
-            
-        except Exception as e:
-            logger.error(f"Geocoding error: {e}")
-            # Fallback: return some default Clermont-Ferrand locations
-            if "clermont" in q.lower():
-                return [
-                    AddressSearchResult(display_name="Place de Jaude, Clermont-Ferrand, 63000", lat=45.7772, lon=3.0870),
-                    AddressSearchResult(display_name="Gare SNCF Clermont-Ferrand, 63000", lat=45.7789, lon=3.1003),
-                    AddressSearchResult(display_name="Aéroport Clermont-Ferrand Auvergne", lat=45.7867, lon=3.1631)
-                ]
-            return []
+    query = q.lower().strip()
+    results = []
+    
+    # Search in local database
+    for addr in CLERMONT_ADDRESSES:
+        if query in addr["name"].lower():
+            results.append(AddressSearchResult(
+                display_name=addr["name"],
+                lat=addr["lat"],
+                lon=addr["lon"]
+            ))
+    
+    # If no local results, try external API
+    if not results:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            try:
+                # Try Nominatim with proper headers
+                response = await client.get(
+                    "https://nominatim.openstreetmap.org/search",
+                    params={
+                        "q": f"{q}, France",
+                        "format": "json",
+                        "limit": 5,
+                        "countrycodes": "fr"
+                    },
+                    headers={
+                        "User-Agent": "MSLK-VTC-Clermont-Ferrand/1.0 (contact@mslk-vtc.fr)",
+                        "Accept-Language": "fr"
+                    }
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    for r in data:
+                        results.append(AddressSearchResult(
+                            display_name=r.get("display_name", ""),
+                            lat=float(r.get("lat", 0)),
+                            lon=float(r.get("lon", 0))
+                        ))
+            except Exception as e:
+                logger.warning(f"External geocoding failed: {e}")
+    
+    return results[:5]
 
 # Create default admin on startup
 @app.on_event("startup")
