@@ -517,8 +517,14 @@ class MSLKVTCTester:
             self.test_admin_endpoints()
             self.test_trip_assignment()
             
+            # New notification and commission tests
+            self.test_ring_notifications()
+            self.test_commission_calculations()
+            
             # Driver tests
             self.test_driver_endpoints()
+            self.test_email_notifications_toggle()
+            self.test_driver_notifications()
             self.test_trip_workflow()
         
         # Print summary
