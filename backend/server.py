@@ -981,6 +981,79 @@ async def update_email_notifications(update: EmailNotificationUpdate, current_us
     
     return {"message": "Préférences mises à jour", "email_notifications": update.email_notifications}
 
+# Publish trip to drivers (makes it visible to drivers)
+@api_router.post("/admin/trips/{trip_id}/publish", response_model=TripResponse)
+async def publish_trip(trip_id: str, current_user: dict = Depends(get_current_user)):
+    """Publish a trip to make it visible to drivers"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    await db.trips.update_one(
+        {"id": trip_id},
+        {"$set": {
+            "published": True,
+            "updated_at": now
+        }}
+    )
+    
+    # Create notification for all active drivers
+    notification = {
+        "id": str(uuid.uuid4()),
+        "trip_id": trip_id,
+        "type": "new_trip",
+        "message": f"Nouvelle course disponible : {trip['pickup_address'][:30]}... → {trip['dropoff_address'][:30]}...",
+        "price": trip.get("price", 0),
+        "created_at": now,
+        "read_by": []
+    }
+    await db.notifications.insert_one(notification)
+    
+    # Get all active drivers with email notifications enabled
+    drivers = await db.users.find({
+        "role": UserRole.DRIVER.value,
+        "is_active": True,
+        "email_notifications": True
+    }, {"_id": 0}).to_list(100)
+    
+    # Send email to all drivers with notifications enabled
+    for driver in drivers:
+        await send_email_notification(
+            driver["email"],
+            "MSLK VTC - Nouvelle course disponible",
+            f"Bonjour {driver['name']},\n\nUne nouvelle course est disponible !\n\nDépart : {trip['pickup_address']}\nArrivée : {trip['dropoff_address']}\nDate : {trip['pickup_datetime'][:16].replace('T', ' ')}\nPrix : {trip.get('price', 0):.2f}€\n\nConnectez-vous à votre espace chauffeur pour l'accepter.\n\nL'équipe MSLK VTC"
+        )
+    
+    updated = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    return trip_to_response(updated)
+
+# Unpublish trip (hide from drivers)
+@api_router.post("/admin/trips/{trip_id}/unpublish", response_model=TripResponse)
+async def unpublish_trip(trip_id: str, current_user: dict = Depends(get_current_user)):
+    """Unpublish a trip to hide it from drivers"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    trip = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    if not trip:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    await db.trips.update_one(
+        {"id": trip_id},
+        {"$set": {
+            "published": False,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    updated = await db.trips.find_one({"id": trip_id}, {"_id": 0})
+    return trip_to_response(updated)
+
 @api_router.put("/admin/trips/{trip_id}/commission", response_model=TripResponse)
 async def update_trip_commission(trip_id: str, commission: CommissionUpdate, current_user: dict = Depends(get_current_user)):
     """Update commission rate for a specific trip"""
