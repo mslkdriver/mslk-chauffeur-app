@@ -278,9 +278,11 @@ def user_to_response(user: dict) -> UserResponse:
         created_at=user.get("created_at", datetime.now(timezone.utc).isoformat()) if isinstance(user.get("created_at"), str) else user.get("created_at", datetime.now(timezone.utc)).isoformat(),
         total_trips=user.get("total_trips", 0),
         total_revenue=user.get("total_revenue", 0.0),
+        total_commission=user.get("total_commission", 0.0),
         commission_rate=user.get("commission_rate", 0.15),
         notes=user.get("notes", ""),
-        is_active=user.get("is_active", True)
+        is_active=user.get("is_active", True),
+        email_notifications=user.get("email_notifications", True)
     )
 
 def trip_to_response(trip: dict) -> TripResponse:
