@@ -388,25 +388,19 @@ export default function DriverDashboard() {
           </div>
         )}
 
-        {/* Commission Total */}
-        <div className="bg-[#121212] border border-red-500/30 p-4 mb-8">
+        {/* Total Revenue Card */}
+        <div className="bg-[#121212] border border-[#D4AF37]/30 p-4 mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[#A1A1A1] text-sm">Commission totale due à MSLK</p>
-              <p className="text-red-400 text-2xl font-bold">{(user?.total_commission || 0).toFixed(2)} €</p>
+              <p className="text-[#A1A1A1] text-sm">Revenu total généré</p>
+              <p className="text-[#D4AF37] text-2xl font-bold">{(user?.total_revenue || 0).toFixed(2)} €</p>
             </div>
             <div className="text-right">
-              <p className="text-[#A1A1A1] text-xs">Taux de commission</p>
-              <p className="text-[#D4AF37] text-lg font-bold">{((user?.commission_rate || 0.15) * 100).toFixed(0)}%</p>
+              <p className="text-[#A1A1A1] text-xs">Commission due à MSLK</p>
+              <p className="text-red-400 text-lg font-bold">{(user?.total_commission || 0).toFixed(2)} €</p>
             </div>
           </div>
-          {stats && stats.commission_due > 0 && (
-            <div className="mt-3 pt-3 border-t border-red-500/20">
-              <p className="text-[#A1A1A1] text-xs">Dont ce mois : <span className="text-white">{stats.commission_due.toFixed(2)}€</span></p>
-            </div>
-          )}
-          </div>
-        )}
+        </div>
 
         {/* Pending/Assigned Trips */}
         {pendingTrips.length > 0 && (
