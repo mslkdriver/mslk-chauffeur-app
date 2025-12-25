@@ -611,6 +611,11 @@ export default function AdminDashboard() {
                         <span className={`status-badge ${statusColors[trip.status]}`}>
                           {statusLabels[trip.status]}
                         </span>
+                        {trip.status === "pending" && (
+                          <span className={`ml-1 text-xs ${trip.published ? 'text-green-400' : 'text-orange-400'}`}>
+                            {trip.published ? '✓ Publiée' : '○ Non publiée'}
+                          </span>
+                        )}
                       </td>
                       <td>
                         {trip.driver_name ? (
@@ -624,8 +629,33 @@ export default function AdminDashboard() {
                         <p className="text-[#A1A1A1] text-xs">{trip.commission_amount.toFixed(2)}€</p>
                       </td>
                       <td>
-                        <div className="flex gap-2">
-                          {(trip.status === "pending" || trip.status === "assigned") && (
+                        <div className="flex gap-2 flex-wrap">
+                          {/* Publier/Dépublier button - only for pending trips */}
+                          {trip.status === "pending" && !trip.published && (
+                            <Button
+                              size="sm"
+                              className="bg-green-500 text-white hover:bg-green-600"
+                              onClick={() => handlePublishTrip(trip.id)}
+                              data-testid={`publish-btn-${trip.id}`}
+                              title="Publier pour les chauffeurs"
+                            >
+                              📢 Publier
+                            </Button>
+                          )}
+                          {trip.status === "pending" && trip.published && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-orange-400 text-orange-400 hover:bg-orange-400/10"
+                              onClick={() => handleUnpublishTrip(trip.id)}
+                              data-testid={`unpublish-btn-${trip.id}`}
+                              title="Retirer de la vue chauffeurs"
+                            >
+                              Retirer
+                            </Button>
+                          )}
+                          {/* Sonner button - only for published or assigned trips */}
+                          {(trip.status === "pending" && trip.published) || trip.status === "assigned" ? (
                             <Button
                               size="sm"
                               className="bg-emerald-500 text-white hover:bg-emerald-600"
@@ -635,7 +665,7 @@ export default function AdminDashboard() {
                             >
                               <Bell size={14} className="mr-1" /> Sonner
                             </Button>
-                          )}
+                          ) : null}
                           {trip.status === "pending" && (
                             <Button
                               size="sm"
