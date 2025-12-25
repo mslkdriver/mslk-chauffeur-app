@@ -101,3 +101,145 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: |
+  Application VTC MSLK - Tests des fonctionnalités de notification "Sonner" et d'affichage des commissions.
+  L'admin doit pouvoir faire sonner une course pour notifier les chauffeurs via son, email, et afficher les commissions.
+
+backend:
+  - task: "Admin ring notification endpoint"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/admin/trips/{trip_id}/ring endpoint - notifies drivers via notification and email"
+
+  - task: "Driver notifications endpoint"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/driver/notifications and POST /api/driver/notifications/{id}/read endpoints"
+
+  - task: "Driver email notification toggle"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "PUT /api/driver/email-notifications endpoint to toggle email notifications"
+
+  - task: "Commission calculation and display"
+    implemented: true
+    working: "NA"
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "total_commission field in User model, calculated when trip is completed"
+
+frontend:
+  - task: "Admin ring button on pending trips"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/AdminDashboard.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Bell icon button to ring drivers for a trip"
+
+  - task: "Admin driver commission column"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/AdminDashboard.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Commission due column in drivers table"
+
+  - task: "Driver notification sound and polling"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/DriverDashboard.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Polling every 10s for notifications with cash register sound"
+
+  - task: "Driver email notification toggle"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/DriverDashboard.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Switch to enable/disable email notifications"
+
+  - task: "Driver commission due card"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/src/pages/DriverDashboard.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Stats card showing commission due to MSLK"
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: true
+
+test_plan:
+  current_focus:
+    - "Admin ring notification endpoint"
+    - "Driver notifications endpoint"
+    - "Driver email notification toggle"
+    - "Commission calculation and display"
+    - "Admin ring button on pending trips"
+    - "Driver notification sound and polling"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: |
+      Testing ring notification and commission display features:
+      1. Admin credentials: mslkdriver@gmail.com / SAMIR1663
+      2. Test flow: Create a trip, admin rings it, verify driver receives notification
+      3. Test commission: Complete a trip and verify commission is calculated
+      4. Test email toggle: Driver can enable/disable email notifications
+      5. Frontend URLs: Admin dashboard at /admin/dashboard, Driver dashboard at /chauffeur/dashboard
