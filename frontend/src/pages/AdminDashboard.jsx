@@ -510,6 +510,17 @@ export default function AdminDashboard() {
                       </td>
                       <td>
                         <div className="flex gap-2">
+                          {(trip.status === "pending" || trip.status === "assigned") && (
+                            <Button
+                              size="sm"
+                              className="bg-emerald-500 text-white hover:bg-emerald-600"
+                              onClick={() => handleRingDrivers(trip.id)}
+                              data-testid={`ring-btn-${trip.id}`}
+                              title="Sonner les chauffeurs"
+                            >
+                              <Bell size={14} className="mr-1" /> Sonner
+                            </Button>
+                          )}
                           {trip.status === "pending" && (
                             <Button
                               size="sm"
