@@ -1,0 +1,123 @@
+{
+  "timestamp": "2025-12-25T18:19:57.119306",
+  "total_tests": 23,
+  "passed_tests": 23,
+  "success_rate": 100.0,
+  "results": [
+    {
+      "test": "API Health Check",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Admin Login",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Driver Registration",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Address Search (OpenStreetMap)",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Address Search - Required Fields",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Price Calculation",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Price Formula Validation",
+      "success": true,
+      "details": "Base: 5.0\u20ac, Per km: 2.0\u20ac"
+    },
+    {
+      "test": "Trip Creation",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Trip - Price & Distance Calculated",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Admin - Get All Trips",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Admin - Get All Drivers",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Admin - Get Stats",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Admin Stats - Required Fields",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Admin - Assign Trip to Driver",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Trip Assignment - Status & Driver",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Driver - Get Available Trips",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Driver - Update Status",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Driver - Get Stats",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Driver Stats - Required Fields",
+      "success": true,
+      "details": ""
+    },
+    {
+      "test": "Driver - Accept Trip",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Driver - Start Trip",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Driver - Complete Trip",
+      "success": true,
+      "details": "Status: 200"
+    },
+    {
+      "test": "Trip Completion - Commission Calculated",
+      "success": true,
+      "details": ""
+    }
+  ]
+}
