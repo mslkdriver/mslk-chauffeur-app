@@ -5,18 +5,20 @@ import { toast } from "sonner";
 import { 
   MapPin, Navigation, Calendar, Clock, Car, Users, Briefcase, Phone, 
   LogOut, Bell, Check, X, Play, Flag, TrendingUp, DollarSign, Route,
-  ExternalLink, RefreshCw
+  ExternalLink, RefreshCw, Mail, MailOff
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Switch } from "../components/ui/switch";
+import { Label } from "../components/ui/label";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_gold-ride/artifacts/xlxl6dl3_537513862_122096432576993953_3681223875377855937_n.jpg";
 
-// Notification sound
+// Money notification sound (cash register)
 const playNotificationSound = () => {
-  const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-  audio.volume = 0.5;
+  const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/888/888-preview.mp3");
+  audio.volume = 0.8;
   audio.play().catch(() => {});
 };
 
