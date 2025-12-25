@@ -165,6 +165,24 @@ export default function AdminDashboard() {
     }
   };
 
+  // Update trip price
+  const handleUpdatePrice = async () => {
+    if (!priceTrip || !newPrice) return;
+    
+    try {
+      await axios.put(
+        `${API}/admin/trips/${priceTrip.id}/price`,
+        { price: parseFloat(newPrice) },
+        { headers: getAuthHeader() }
+      );
+      toast.success("Prix confirmé et client notifié !");
+      setPriceDialogOpen(false);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
+    }
+  };
+
   // Cancel trip
   const handleCancelTrip = async (tripId) => {
     if (!window.confirm("Annuler cette course ?")) return;
