@@ -996,6 +996,54 @@ export default function AdminDashboard() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Commission Total Dialog */}
+      <Dialog open={commissionTotalDialogOpen} onOpenChange={setCommissionTotalDialogOpen}>
+        <DialogContent className="bg-[#121212] border-[#D4AF37]">
+          <DialogHeader>
+            <DialogTitle className="text-white font-heading">
+              Commission de {selectedDriverForCommission?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedDriverForCommission && (
+              <div className="bg-black/50 p-3 rounded text-sm border border-[#D4AF37]/20">
+                <p className="text-[#A1A1A1]">Commission actuelle: <span className="text-red-400 font-bold">{(selectedDriverForCommission.total_commission || 0).toFixed(2)} €</span></p>
+                <p className="text-[#A1A1A1]">CA Total: <span className="text-[#D4AF37]">{selectedDriverForCommission.total_revenue?.toFixed(2) || 0} €</span></p>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label className="text-[#D4AF37]">Nouvelle commission totale (€)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                className="input-mslk text-xl font-bold text-center"
+                value={newTotalCommission}
+                onChange={(e) => setNewTotalCommission(e.target.value)}
+                placeholder="0.00"
+              />
+              <p className="text-[#A1A1A1] text-xs text-center">
+                Mettez 0 pour réinitialiser la commission
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white" 
+                onClick={() => {
+                  setNewTotalCommission("0");
+                  handleUpdateTotalCommission();
+                }}
+              >
+                Réinitialiser à 0
+              </Button>
+              <Button className="flex-1 btn-gold" onClick={handleUpdateTotalCommission}>
+                Modifier
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
