@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
 import { 
   MapPin, Navigation, Calendar, Clock, Car, Users, Phone, 
   LogOut, TrendingUp, DollarSign, Route, UserCheck, RefreshCw,
-  Check, X, Edit, Download, Ban, AlertCircle, Trash2, Bell
+  Check, X, Edit, Download, Ban, AlertCircle, Trash2, Bell, Mail, User
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -17,6 +17,13 @@ import { Textarea } from "../components/ui/textarea";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_gold-ride/artifacts/xlxl6dl3_537513862_122096432576993953_3681223875377855937_n.jpg";
+
+// Notification sound
+const playNotificationSound = () => {
+  const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+  audio.volume = 0.7;
+  audio.play().catch(() => {});
+};
 
 const statusLabels = {
   pending: "En attente",
@@ -48,6 +55,7 @@ export default function AdminDashboard() {
   const [user, setUser] = useState(null);
   const [trips, setTrips] = useState([]);
   const [drivers, setDrivers] = useState([]);
+  const [clients, setClients] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -75,9 +83,39 @@ export default function AdminDashboard() {
   const [driverNotes, setDriverNotes] = useState("");
   const [driverCommission, setDriverCommission] = useState("");
 
+  // Driver commission total dialog
+  const [commissionTotalDialogOpen, setCommissionTotalDialogOpen] = useState(false);
+  const [selectedDriverForCommission, setSelectedDriverForCommission] = useState(null);
+  const [newTotalCommission, setNewTotalCommission] = useState("");
+
   const getAuthHeader = () => {
     const token = localStorage.getItem("mslk_token");
     return { Authorization: `Bearer ${token}` };
+  };
+
+  // Check for new notifications (bookings)
+  const checkNotifications = async () => {
+    try {
+      const response = await axios.get(`${API}/admin/notifications`, { headers: getAuthHeader() });
+      if (response.data.length > 0) {
+        // Play sound for new notifications
+        playNotificationSound();
+        toast.info(`🔔 ${response.data[0].message}`, {
+          duration: 5000,
+          style: { background: '#D4AF37', color: '#000' }
+        });
+        
+        // Mark notifications as read
+        for (const notif of response.data) {
+          await axios.post(`${API}/admin/notifications/${notif.id}/read`, {}, { headers: getAuthHeader() });
+        }
+        
+        // Refresh data
+        fetchData();
+      }
+    } catch (error) {
+      console.error("Error checking notifications:", error);
+    }
   };
 
   // Check auth
@@ -98,19 +136,28 @@ export default function AdminDashboard() {
     
     setUser(userData);
     fetchData();
+    checkNotifications();
   }, [navigate]);
+
+  // Check notifications every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(checkNotifications, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const fetchData = async () => {
     try {
-      const [tripsRes, driversRes, statsRes] = await Promise.all([
+      const [tripsRes, driversRes, statsRes, clientsRes] = await Promise.all([
         axios.get(`${API}/admin/trips`, { headers: getAuthHeader() }),
         axios.get(`${API}/admin/drivers`, { headers: getAuthHeader() }),
-        axios.get(`${API}/admin/stats`, { headers: getAuthHeader() })
+        axios.get(`${API}/admin/stats`, { headers: getAuthHeader() }),
+        axios.get(`${API}/admin/clients`, { headers: getAuthHeader() })
       ]);
       
       setTrips(tripsRes.data);
       setDrivers(driversRes.data);
       setStats(statsRes.data);
+      setClients(clientsRes.data);
     } catch (error) {
       if (error.response?.status === 401) {
         handleLogout();
