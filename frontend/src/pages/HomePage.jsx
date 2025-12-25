@@ -86,14 +86,14 @@ export default function HomePage() {
   // Search pickup address
   useEffect(() => {
     const searchPickup = async () => {
-      if (debouncedPickup.length < 3) {
+      if (debouncedPickup.length < 2) {
         setPickupSuggestions([]);
         return;
       }
       setPickupLoading(true);
       try {
         const response = await axios.get(`${API}/geocode/search`, { 
-          params: { q: debouncedPickup + ", France" } 
+          params: { q: debouncedPickup } 
         });
         setPickupSuggestions(response.data);
         setShowPickupDropdown(response.data.length > 0);
@@ -109,14 +109,14 @@ export default function HomePage() {
   // Search dropoff address
   useEffect(() => {
     const searchDropoff = async () => {
-      if (debouncedDropoff.length < 3) {
+      if (debouncedDropoff.length < 2) {
         setDropoffSuggestions([]);
         return;
       }
       setDropoffLoading(true);
       try {
         const response = await axios.get(`${API}/geocode/search`, { 
-          params: { q: debouncedDropoff + ", France" } 
+          params: { q: debouncedDropoff } 
         });
         setDropoffSuggestions(response.data);
         setShowDropoffDropdown(response.data.length > 0);
