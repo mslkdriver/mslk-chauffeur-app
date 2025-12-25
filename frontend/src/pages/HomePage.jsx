@@ -34,11 +34,7 @@ export default function HomePage() {
     client_phone: "",
     client_email: "",
     pickup_address: "",
-    pickup_lat: 0,
-    pickup_lng: 0,
     dropoff_address: "",
-    dropoff_lat: 0,
-    dropoff_lng: 0,
     pickup_date: "",
     pickup_time: "",
     vehicle_type: "berline",
@@ -47,16 +43,8 @@ export default function HomePage() {
     notes: ""
   });
 
-  // Address search states
-  const [pickupQuery, setPickupQuery] = useState("");
-  const [dropoffQuery, setDropoffQuery] = useState("");
-  const [pickupSuggestions, setPickupSuggestions] = useState([]);
-  const [dropoffSuggestions, setDropoffSuggestions] = useState([]);
-  const [showPickupDropdown, setShowPickupDropdown] = useState(false);
-  const [showDropoffDropdown, setShowDropoffDropdown] = useState(false);
-  const [pickupLoading, setPickupLoading] = useState(false);
-  const [dropoffLoading, setDropoffLoading] = useState(false);
-  const [pricePreview, setPricePreview] = useState(null);
+  // Now option
+  const [isNow, setIsNow] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const pickupRef = useRef(null);
