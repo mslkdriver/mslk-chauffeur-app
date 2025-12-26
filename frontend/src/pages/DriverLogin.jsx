@@ -241,6 +241,51 @@ export default function DriverLogin() {
                       data-testid="register-phone"
                     />
                   </div>
+
+                  {/* Vehicle Info Section */}
+                  <div className="pt-4 border-t border-[#D4AF37]/20">
+                    <p className="text-[#D4AF37] text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <Car size={14} /> Informations véhicule
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-[#A1A1A1] text-xs">Modèle *</Label>
+                        <Input
+                          type="text"
+                          className="input-mslk"
+                          placeholder="Ex: Mercedes Classe E"
+                          value={registerData.vehicle_model}
+                          onChange={(e) => setRegisterData({ ...registerData, vehicle_model: e.target.value })}
+                          required
+                          data-testid="register-vehicle-model"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[#A1A1A1] text-xs">Couleur</Label>
+                        <Input
+                          type="text"
+                          className="input-mslk"
+                          placeholder="Ex: Noir"
+                          value={registerData.vehicle_color}
+                          onChange={(e) => setRegisterData({ ...registerData, vehicle_color: e.target.value })}
+                          data-testid="register-vehicle-color"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2 mt-3">
+                      <Label className="text-[#A1A1A1] text-xs">Immatriculation *</Label>
+                      <Input
+                        type="text"
+                        className="input-mslk uppercase"
+                        placeholder="Ex: AB-123-CD"
+                        value={registerData.vehicle_plate}
+                        onChange={(e) => setRegisterData({ ...registerData, vehicle_plate: e.target.value.toUpperCase() })}
+                        required
+                        data-testid="register-vehicle-plate"
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <Label className="text-[#D4AF37] text-xs uppercase tracking-widest flex items-center gap-2">
                       <Lock size={14} /> Mot de passe
