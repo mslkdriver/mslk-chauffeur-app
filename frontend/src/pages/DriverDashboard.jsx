@@ -492,14 +492,20 @@ export default function DriverDashboard() {
             <h2 className="text-[#A1A1A1] text-lg font-bold mb-3">Dernières courses</h2>
             <div className="space-y-2">
               {completedTrips.map((trip) => (
-                <div key={trip.id} className="bg-[#121212] border border-[#D4AF37]/10 p-3 flex justify-between items-center">
+                <div 
+                  key={trip.id} 
+                  className="bg-[#121212] border border-[#D4AF37]/10 p-3 flex justify-between items-center cursor-pointer hover:border-[#D4AF37]/30 transition-colors"
+                  onClick={() => openTripDetails(trip)}
+                >
                   <div>
                     <p className="text-white text-sm">{trip.pickup_address.split(",")[0]}</p>
                     <p className="text-[#A1A1A1] text-xs">{formatDate(trip.pickup_datetime)}</p>
+                    <p className="text-[#A1A1A1] text-xs">Client: {trip.client_name}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[#D4AF37] font-bold">{trip.price.toFixed(2)}€</p>
                     <p className="text-red-400 text-xs">-{(trip.commission_amount || 0).toFixed(2)}€</p>
+                    <p className="text-[#A1A1A1] text-xs">N° {trip.id.slice(0,8).toUpperCase()}</p>
                   </div>
                 </div>
               ))}
