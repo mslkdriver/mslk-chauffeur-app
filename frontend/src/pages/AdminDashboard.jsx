@@ -29,6 +29,7 @@ const statusLabels = {
   pending: "En attente",
   assigned: "Assignée",
   accepted: "Acceptée",
+  approaching: "En approche",
   in_progress: "En cours",
   completed: "Terminée",
   cancelled: "Annulée"
