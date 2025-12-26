@@ -294,7 +294,10 @@ def user_to_response(user: dict) -> UserResponse:
         commission_rate=user.get("commission_rate", 0.15),
         notes=user.get("notes", ""),
         is_active=user.get("is_active", True),
-        email_notifications=user.get("email_notifications", True)
+        email_notifications=user.get("email_notifications", True),
+        vehicle_model=user.get("vehicle_model", ""),
+        vehicle_color=user.get("vehicle_color", ""),
+        vehicle_plate=user.get("vehicle_plate", "")
     )
 
 def trip_to_response(trip: dict) -> TripResponse:
