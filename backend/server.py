@@ -59,7 +59,8 @@ class TripStatus(str, Enum):
     PENDING = "pending"
     ASSIGNED = "assigned"
     ACCEPTED = "accepted"
-    IN_PROGRESS = "in_progress"
+    APPROACHING = "approaching"  # Chauffeur en approche
+    IN_PROGRESS = "in_progress"  # Course en cours
     COMPLETED = "completed"
     CANCELLED = "cancelled"
 
@@ -68,6 +69,11 @@ class DriverStatus(str, Enum):
     BUSY = "busy"
     EN_ROUTE = "en_route"
     OFFLINE = "offline"
+
+class DriverApprovalStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
 
 class VehicleType(str, Enum):
     BERLINE = "berline"
