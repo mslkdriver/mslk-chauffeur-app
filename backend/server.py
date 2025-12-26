@@ -85,6 +85,10 @@ class UserCreate(UserBase):
     password: str
     role: UserRole = UserRole.DRIVER
     email_notifications: bool = True
+    # Vehicle info for drivers
+    vehicle_model: str = ""
+    vehicle_color: str = ""
+    vehicle_plate: str = ""
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -102,6 +106,9 @@ class User(UserBase):
     notes: str = ""
     is_active: bool = True
     email_notifications: bool = True  # Option to receive email notifications
+    vehicle_model: str = ""
+    vehicle_color: str = ""
+    vehicle_plate: str = ""
 
 class UserResponse(BaseModel):
     id: str
@@ -118,6 +125,9 @@ class UserResponse(BaseModel):
     notes: str
     is_active: bool
     email_notifications: bool
+    vehicle_model: str
+    vehicle_color: str
+    vehicle_plate: str
 
 class TokenResponse(BaseModel):
     token: str
