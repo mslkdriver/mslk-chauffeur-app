@@ -99,8 +99,18 @@ export default function HomePage() {
         notes: isNow ? `[MAINTENANT] ${formData.notes}` : formData.notes
       });
 
-      toast.success("Réservation enregistrée !");
-      navigate(`/confirmation/${response.data.id}`);
+      toast.success("Réservation enregistrée ! Numéro: " + response.data.id.slice(0, 8).toUpperCase());
+      
+      // Store client email for tracking
+      localStorage.setItem("mslk_client_email", formData.client_email);
+      localStorage.setItem("mslk_client_name", formData.client_name);
+      
+      // Redirect to client space if logged in, otherwise to confirmation
+      if (isLoggedIn) {
+        navigate("/client/espace");
+      } else {
+        navigate(`/confirmation/${response.data.id}`);
+      }
     } catch (error) {
       toast.error(error.response?.data?.detail || "Erreur lors de la réservation");
     } finally {
