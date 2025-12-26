@@ -593,11 +593,19 @@ async def create_trip(trip_data: TripCreate):
     }
     await db.admin_notifications.insert_one(admin_notification)
     
-    # Send confirmation email
+    # Send confirmation email to client
     await send_email_notification(
         trip_data.client_email,
         "MSLK VTC - Demande de réservation reçue",
         f"Bonjour {trip_data.client_name},\n\nVotre demande de course pour le {trip_data.pickup_datetime.strftime('%d/%m/%Y à %H:%M')} a été enregistrée.\n\nDépart : {trip_data.pickup_address}\nArrivée : {trip_data.dropoff_address}\n\nNos services vous contacteront rapidement pour confirmer le tarif.\n\nMerci de votre confiance.\n\nL'équipe MSLK VTC"
+    )
+    
+    # Send notification email to admin
+    admin_email = os.environ.get('SMTP_USER', 'mslkdriver@gmail.com')
+    await send_email_notification(
+        admin_email,
+        f"🚗 Nouvelle réservation - {trip_data.client_name}",
+        f"Nouvelle réservation reçue !\n\nClient : {trip_data.client_name}\nTéléphone : {trip_data.client_phone}\nEmail : {trip_data.client_email}\n\nDate : {trip_data.pickup_datetime.strftime('%d/%m/%Y à %H:%M')}\n\nDépart : {trip_data.pickup_address}\nArrivée : {trip_data.dropoff_address}\n\nDistance estimée : {distance:.1f} km\nPassagers : {trip_data.passengers}\nBagages : {trip_data.luggage_count}\n\nConnectez-vous à votre espace admin pour gérer cette réservation."
     )
     
     return trip_to_response(trip_dict)
