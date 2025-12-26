@@ -270,6 +270,57 @@ export default function AdminDashboard() {
     }
   };
 
+  // Open edit trip dialog
+  const openEditTripDialog = (trip) => {
+    const pickupDate = trip.pickup_datetime ? trip.pickup_datetime.split('T')[0] : '';
+    const pickupTime = trip.pickup_datetime ? trip.pickup_datetime.split('T')[1]?.substring(0, 5) : '';
+    
+    setEditingTrip(trip);
+    setEditTripData({
+      client_name: trip.client_name || "",
+      client_phone: trip.client_phone || "",
+      client_email: trip.client_email || "",
+      pickup_address: trip.pickup_address || "",
+      dropoff_address: trip.dropoff_address || "",
+      pickup_date: pickupDate,
+      pickup_time: pickupTime,
+      price: String(trip.price || 0),
+      status: trip.status || "pending",
+      commission_rate: String(trip.commission_rate || 0.15)
+    });
+    setEditTripDialogOpen(true);
+  };
+
+  // Save edited trip
+  const handleSaveTrip = async () => {
+    if (!editingTrip) return;
+    
+    try {
+      const pickup_datetime = `${editTripData.pickup_date}T${editTripData.pickup_time}:00`;
+      
+      await axios.put(
+        `${API}/admin/trips/${editingTrip.id}/full-update`,
+        {
+          client_name: editTripData.client_name,
+          client_phone: editTripData.client_phone,
+          client_email: editTripData.client_email,
+          pickup_address: editTripData.pickup_address,
+          dropoff_address: editTripData.dropoff_address,
+          pickup_datetime: pickup_datetime,
+          price: parseFloat(editTripData.price) || 0,
+          status: editTripData.status,
+          commission_rate: parseFloat(editTripData.commission_rate) || 0.15
+        },
+        { headers: getAuthHeader() }
+      );
+      toast.success("Course mise à jour !");
+      setEditTripDialogOpen(false);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur lors de la mise à jour");
+    }
+  };
+
   // Delete trip
   const handleDeleteTrip = async (tripId) => {
     if (!window.confirm("Supprimer définitivement cette course ?")) return;
