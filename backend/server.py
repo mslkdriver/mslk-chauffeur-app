@@ -199,6 +199,10 @@ class TripResponse(BaseModel):
     status: str
     driver_id: Optional[str]
     driver_name: Optional[str]
+    driver_phone: Optional[str]
+    driver_vehicle_model: Optional[str]
+    driver_vehicle_color: Optional[str]
+    driver_vehicle_plate: Optional[str]
     commission_amount: float
     commission_rate: float
     published: bool
