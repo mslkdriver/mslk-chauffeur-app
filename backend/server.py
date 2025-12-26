@@ -863,10 +863,9 @@ async def driver_complete_trip(trip_id: str, current_user: dict = Depends(get_cu
         "type": "collect_payment",
         "trip_id": trip_id,
         "driver_id": current_user["id"],
-        "message": f"Course terminée ! Encaissez {trip['price']:.2f}€ auprès du client",
+        "message": f"Course terminée ! Encaissez {trip['price']:.2f}€ auprès du client {trip['client_name']}",
         "amount": trip["price"],
         "client_name": trip["client_name"],
-        "client_phone": trip["client_phone"],
         "created_at": now,
         "read": False
     }
@@ -885,12 +884,12 @@ async def driver_complete_trip(trip_id: str, current_user: dict = Depends(get_cu
     }
     await db.client_notifications.insert_one(client_notification)
     
-    # Send email to driver with booking voucher
+    # Send email to driver with booking voucher (only name and reservation number, no phone/email)
     driver = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
     await send_email_notification(
         driver["email"],
         f"📋 Bon de transport - {trip['client_name']} - {trip['price']:.2f}€",
-        f"BON DE TRANSPORT MSLK VTC\n\n══════════════════════════\n\nN° Réservation : {trip['id'][:8].upper()}\n\n══════════════════════════\n\nCLIENT\nNom : {trip['client_name']}\nTéléphone : {trip['client_phone']}\nEmail : {trip['client_email']}\n\n══════════════════════════\n\nCOURSE\nDate : {trip['pickup_datetime'][:16].replace('T', ' ')}\nDépart : {trip['pickup_address']}\nArrivée : {trip['dropoff_address']}\nDistance : {trip.get('distance_km', 0):.1f} km\n\n══════════════════════════\n\nMONTANT À ENCAISSER : {trip['price']:.2f}€\nCommission MSLK ({int(trip.get('commission_rate', 0.15)*100)}%) : {commission:.2f}€\n\n══════════════════════════\n\nMerci pour votre travail !\nL'équipe MSLK VTC"
+        f"BON DE TRANSPORT MSLK VTC\n\n══════════════════════════\n\nN° Réservation : {trip['id'][:8].upper()}\n\n══════════════════════════\n\nCLIENT\nNom : {trip['client_name']}\n\n══════════════════════════\n\nCOURSE\nDate : {trip['pickup_datetime'][:16].replace('T', ' ')}\nDépart : {trip['pickup_address']}\nArrivée : {trip['dropoff_address']}\nDistance : {trip.get('distance_km', 0):.1f} km\n\n══════════════════════════\n\nMONTANT ENCAISSÉ : {trip['price']:.2f}€\nCommission MSLK ({int(trip.get('commission_rate', 0.15)*100)}%) : {commission:.2f}€\n\n══════════════════════════\n\nMerci pour votre travail !\nL'équipe MSLK VTC"
     )
     
     # Send email to client
