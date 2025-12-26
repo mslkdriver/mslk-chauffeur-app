@@ -904,12 +904,7 @@ export default function AdminDashboard() {
                           title="Cliquez pour modifier la commission"
                       >
                         {(driver.total_commission || 0).toFixed(2)}€
-                      </td>
-                      <td className="text-white">{(driver.commission_rate * 100).toFixed(0)}%</td>
-                      <td>
-                        <span className={driver.email_notifications ? "text-emerald-400" : "text-gray-500"}>
-                          {driver.email_notifications ? "✓" : "✗"}
-                        </span>
+                        <span className="text-[#A1A1A1] text-xs ml-1">({(driver.commission_rate * 100).toFixed(0)}%)</span>
                       </td>
                       <td>
                         <div className="flex gap-2">
