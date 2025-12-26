@@ -299,6 +299,7 @@ def user_to_response(user: dict) -> UserResponse:
         name=user.get("name", ""),
         role=user.get("role", "driver"),
         status=user.get("status", "offline"),
+        approval_status=user.get("approval_status", "pending"),
         created_at=user.get("created_at", datetime.now(timezone.utc).isoformat()) if isinstance(user.get("created_at"), str) else user.get("created_at", datetime.now(timezone.utc)).isoformat(),
         total_trips=user.get("total_trips", 0),
         total_revenue=user.get("total_revenue", 0.0),
