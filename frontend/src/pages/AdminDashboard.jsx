@@ -93,6 +93,11 @@ export default function AdminDashboard() {
   const [selectedDriverForRevenue, setSelectedDriverForRevenue] = useState(null);
   const [newTotalRevenue, setNewTotalRevenue] = useState("");
 
+  // Driver trips total dialog
+  const [tripsTotalDialogOpen, setTripsTotalDialogOpen] = useState(false);
+  const [selectedDriverForTrips, setSelectedDriverForTrips] = useState(null);
+  const [newTotalTrips, setNewTotalTrips] = useState("");
+
   const getAuthHeader = () => {
     const token = localStorage.getItem("mslk_token");
     return { Authorization: `Bearer ${token}` };
