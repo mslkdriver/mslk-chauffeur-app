@@ -869,6 +869,10 @@ async def assign_trip(trip_id: str, assignment: TripAssign, current_user: dict =
             "status": TripStatus.ASSIGNED.value,
             "driver_id": driver["id"],
             "driver_name": driver["name"],
+            "driver_phone": driver.get("phone", ""),
+            "driver_vehicle_model": driver.get("vehicle_model", ""),
+            "driver_vehicle_color": driver.get("vehicle_color", ""),
+            "driver_vehicle_plate": driver.get("vehicle_plate", ""),
             "commission_rate": commission_rate,
             "updated_at": now
         }}
@@ -878,8 +882,16 @@ async def assign_trip(trip_id: str, assignment: TripAssign, current_user: dict =
     await send_email_notification(
         driver["email"],
         "MSLK VTC - Nouvelle course assignée",
-        f"Une nouvelle course vous a été assignée. Départ: {trip['pickup_address']}"
+        f"Une nouvelle course vous a été assignée.\n\nDépart: {trip['pickup_address']}\nArrivée: {trip['dropoff_address']}\nDate: {trip['pickup_datetime'][:16].replace('T', ' ')}\n\nClient: {trip['client_name']}\n\nConnectez-vous à votre espace chauffeur pour plus de détails."
     )
+    
+    # Notify client that driver is assigned
+    if driver.get("vehicle_model") and driver.get("vehicle_plate"):
+        await send_email_notification(
+            trip["client_email"],
+            "MSLK VTC - Chauffeur assigné",
+            f"Bonjour {trip['client_name']},\n\nUn chauffeur a été assigné à votre course !\n\nChauffeur : {driver['name']}\nTéléphone : {driver.get('phone', 'Non disponible')}\nVéhicule : {driver.get('vehicle_model', '')} {driver.get('vehicle_color', '')}\nImmatriculation : {driver.get('vehicle_plate', '')}\n\nDate : {trip['pickup_datetime'][:16].replace('T', ' ')}\nDépart : {trip['pickup_address']}\nArrivée : {trip['dropoff_address']}\n\nMerci de votre confiance.\n\nL'équipe MSLK VTC"
+        )
     
     updated = await db.trips.find_one({"id": trip_id}, {"_id": 0})
     return trip_to_response(updated)
