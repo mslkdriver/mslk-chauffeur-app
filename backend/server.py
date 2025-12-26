@@ -104,6 +104,7 @@ class User(UserBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     role: UserRole
     status: DriverStatus = DriverStatus.OFFLINE
+    approval_status: str = "pending"  # pending, approved, rejected - for drivers
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     total_trips: int = 0
     total_revenue: float = 0.0
@@ -123,6 +124,7 @@ class UserResponse(BaseModel):
     name: str
     role: str
     status: str
+    approval_status: str
     created_at: str
     total_trips: int
     total_revenue: float
