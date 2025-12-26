@@ -38,6 +38,7 @@ const statusColors = {
   pending: "status-pending",
   assigned: "status-assigned",
   accepted: "status-accepted",
+  approaching: "bg-orange-500/20 text-orange-400",
   in_progress: "status-in-progress",
   completed: "status-completed",
   cancelled: "status-cancelled"
@@ -48,6 +49,18 @@ const driverStatusLabels = {
   busy: "Occupé",
   en_route: "En route",
   offline: "Hors ligne"
+};
+
+const approvalStatusLabels = {
+  pending: "⏳ En attente",
+  approved: "✅ Approuvé",
+  rejected: "❌ Refusé"
+};
+
+const approvalStatusColors = {
+  pending: "text-yellow-400",
+  approved: "text-emerald-400",
+  rejected: "text-red-400"
 };
 
 export default function AdminDashboard() {
