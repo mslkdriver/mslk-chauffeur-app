@@ -91,6 +91,22 @@ export default function AdminDashboard() {
   const [priceTrip, setPriceTrip] = useState(null);
   const [newPrice, setNewPrice] = useState("");
 
+  // Edit Trip dialog (full edit)
+  const [editTripDialogOpen, setEditTripDialogOpen] = useState(false);
+  const [editingTrip, setEditingTrip] = useState(null);
+  const [editTripData, setEditTripData] = useState({
+    client_name: "",
+    client_phone: "",
+    client_email: "",
+    pickup_address: "",
+    dropoff_address: "",
+    pickup_date: "",
+    pickup_time: "",
+    price: "",
+    status: "",
+    commission_rate: ""
+  });
+
   // Driver dialog
   const [driverDialogOpen, setDriverDialogOpen] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
