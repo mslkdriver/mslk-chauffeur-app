@@ -375,6 +375,24 @@ export default function AdminDashboard() {
     }
   };
 
+  // Update driver total trips
+  const handleUpdateTotalTrips = async () => {
+    if (!selectedDriverForTrips) return;
+    
+    try {
+      await axios.put(
+        `${API}/admin/drivers/${selectedDriverForTrips.id}/total-trips`,
+        { total_trips: parseInt(newTotalTrips) },
+        { headers: getAuthHeader() }
+      );
+      toast.success("Nombre de courses mis à jour !");
+      setTripsTotalDialogOpen(false);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
+    }
+  };
+
   // Delete client
   const handleDeleteClient = async (clientId, clientName) => {
     if (!window.confirm(`Supprimer définitivement le client ${clientName} ?`)) return;
