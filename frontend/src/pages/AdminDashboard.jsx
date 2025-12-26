@@ -434,6 +434,21 @@ export default function AdminDashboard() {
     }
   };
 
+  // Approve/Reject driver
+  const handleDriverApproval = async (driverId, approval) => {
+    try {
+      await axios.put(
+        `${API}/admin/drivers/${driverId}/approval`,
+        { approval_status: approval },
+        { headers: getAuthHeader() }
+      );
+      toast.success(approval === "approved" ? "Chauffeur approuvé !" : "Chauffeur refusé");
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
+    }
+  };
+
   // Export CSV
   const exportCSV = () => {
     const headers = ["ID", "Client", "Téléphone", "Départ", "Arrivée", "Date", "Prix", "Statut", "Chauffeur", "Commission"];
