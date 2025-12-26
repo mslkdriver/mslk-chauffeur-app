@@ -1326,7 +1326,7 @@ async def delete_driver(driver_id: str, current_user: dict = Depends(get_current
     # Check if driver has active trips
     active_trips = await db.trips.count_documents({
         "driver_id": driver_id,
-        "status": {"$in": [TripStatus.ASSIGNED.value, TripStatus.ACCEPTED.value, TripStatus.IN_PROGRESS.value]}
+        "status": {"$in": [TripStatus.ASSIGNED.value, TripStatus.ACCEPTED.value, TripStatus.APPROACHING.value, TripStatus.IN_PROGRESS.value]}
     })
     
     if active_trips > 0:
@@ -1338,6 +1338,65 @@ async def delete_driver(driver_id: str, current_user: dict = Depends(get_current
         raise HTTPException(status_code=404, detail="Driver not found")
     
     return {"message": "Chauffeur supprimé"}
+
+# Approve or reject driver registration
+class DriverApprovalUpdate(BaseModel):
+    approval_status: str  # "approved" or "rejected"
+
+@api_router.put("/admin/drivers/{driver_id}/approval", response_model=UserResponse)
+async def update_driver_approval(driver_id: str, approval: DriverApprovalUpdate, current_user: dict = Depends(get_current_user)):
+    """Approve or reject a driver registration"""
+    if current_user["role"] != UserRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="Admins only")
+    
+    if approval.approval_status not in ["approved", "rejected"]:
+        raise HTTPException(status_code=400, detail="Invalid approval status")
+    
+    driver = await db.users.find_one({"id": driver_id, "role": UserRole.DRIVER.value}, {"_id": 0})
+    if not driver:
+        raise HTTPException(status_code=404, detail="Driver not found")
+    
+    await db.users.update_one(
+        {"id": driver_id},
+        {"$set": {"approval_status": approval.approval_status}}
+    )
+    
+    # Send email to driver about approval/rejection
+    if approval.approval_status == "approved":
+        await send_email_notification(
+            driver["email"],
+            "✅ MSLK VTC - Inscription approuvée !",
+            f"Bonjour {driver['name']},\n\nFélicitations ! Votre inscription en tant que chauffeur MSLK VTC a été approuvée.\n\nVous pouvez maintenant vous connecter et commencer à recevoir des courses.\n\nBonne route !\n\nL'équipe MSLK VTC"
+        )
+    else:
+        await send_email_notification(
+            driver["email"],
+            "❌ MSLK VTC - Inscription refusée",
+            f"Bonjour {driver['name']},\n\nNous sommes désolés, votre inscription en tant que chauffeur MSLK VTC n'a pas été approuvée.\n\nPour plus d'informations, veuillez nous contacter.\n\nL'équipe MSLK VTC"
+        )
+    
+    updated = await db.users.find_one({"id": driver_id}, {"_id": 0})
+    return user_to_response(updated)
+
+# Get client notifications
+@api_router.get("/client/notifications")
+async def get_client_notifications(email: str):
+    """Get notifications for a client by email"""
+    notifications = await db.client_notifications.find(
+        {"client_email": email, "read": False},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(20)
+    return notifications
+
+# Mark client notification as read
+@api_router.post("/client/notifications/{notification_id}/read")
+async def mark_client_notification_read(notification_id: str):
+    """Mark a client notification as read"""
+    await db.client_notifications.update_one(
+        {"id": notification_id},
+        {"$set": {"read": True}}
+    )
+    return {"message": "Notification marked as read"}
 
 @api_router.put("/admin/drivers/{driver_id}/commission", response_model=UserResponse)
 async def update_driver_commission(driver_id: str, commission: CommissionUpdate, current_user: dict = Depends(get_current_user)):
