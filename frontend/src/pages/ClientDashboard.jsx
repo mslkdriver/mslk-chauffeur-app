@@ -226,11 +226,37 @@ export default function ClientDashboard() {
 
                   {/* Driver info */}
                   {trip.driver_name && (
-                    <div className="mt-4 pt-4 border-t border-[#D4AF37]/10">
-                      <p className="text-sm">
-                        <span className="text-[#A1A1A1]">Chauffeur : </span>
-                        <span className="text-white font-medium">{trip.driver_name}</span>
-                      </p>
+                    <div className="mt-4 pt-4 border-t border-[#D4AF37]/10 bg-emerald-500/5 p-3 rounded">
+                      <p className="text-[#D4AF37] text-xs uppercase tracking-wider mb-2">Votre chauffeur</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-[#D4AF37]/20 flex items-center justify-center">
+                          <User className="w-6 h-6 text-[#D4AF37]" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-white font-bold">{trip.driver_name}</p>
+                          {trip.driver_phone && (
+                            <a href={`tel:${trip.driver_phone}`} className="text-[#D4AF37] text-sm flex items-center gap-1 hover:underline">
+                              <Phone size={12} />
+                              {trip.driver_phone}
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      {(trip.driver_vehicle_model || trip.driver_vehicle_plate) && (
+                        <div className="mt-3 pt-3 border-t border-[#D4AF37]/10">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Car size={14} className="text-[#D4AF37]" />
+                            <span className="text-white">
+                              {trip.driver_vehicle_model} {trip.driver_vehicle_color && `(${trip.driver_vehicle_color})`}
+                            </span>
+                          </div>
+                          {trip.driver_vehicle_plate && (
+                            <p className="text-[#A1A1A1] text-xs mt-1 ml-5">
+                              Immatriculation : <span className="text-white font-mono">{trip.driver_vehicle_plate}</span>
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
