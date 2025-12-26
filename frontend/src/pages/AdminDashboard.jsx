@@ -816,13 +816,12 @@ export default function AdminDashboard() {
                 <thead>
                   <tr>
                     <th>Chauffeur</th>
-                    <th>Contact</th>
+                    <th>Véhicule</th>
+                    <th>Approbation</th>
                     <th>Statut</th>
                     <th>Courses</th>
                     <th>CA Total</th>
-                    <th>Commission due</th>
-                    <th>Taux</th>
-                    <th>Email</th>
+                    <th>Commission</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -832,12 +831,40 @@ export default function AdminDashboard() {
                       <td>
                         <div className="flex items-center gap-2">
                           {!driver.is_active && <Ban size={14} className="text-red-400" />}
-                          <p className="text-white">{driver.name}</p>
+                          <div>
+                            <p className="text-white font-bold">{driver.name}</p>
+                            <p className="text-[#A1A1A1] text-xs">{driver.email}</p>
+                            <p className="text-[#A1A1A1] text-xs">{driver.phone}</p>
+                          </div>
                         </div>
                       </td>
                       <td>
-                        <p className="text-white text-sm">{driver.email}</p>
-                        <p className="text-[#A1A1A1] text-xs">{driver.phone}</p>
+                        <p className="text-white text-sm">{driver.vehicle_model || "-"}</p>
+                        <p className="text-[#A1A1A1] text-xs">{driver.vehicle_color}</p>
+                        <p className="text-[#D4AF37] text-xs font-mono">{driver.vehicle_plate || "-"}</p>
+                      </td>
+                      <td>
+                        <span className={approvalStatusColors[driver.approval_status || 'pending']}>
+                          {approvalStatusLabels[driver.approval_status || 'pending']}
+                        </span>
+                        {(driver.approval_status === "pending" || !driver.approval_status) && (
+                          <div className="flex gap-1 mt-1">
+                            <Button
+                              size="sm"
+                              className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs py-0.5 px-2 h-6"
+                              onClick={() => handleDriverApproval(driver.id, "approved")}
+                            >
+                              ✓
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="bg-red-500 hover:bg-red-600 text-white text-xs py-0.5 px-2 h-6"
+                              onClick={() => handleDriverApproval(driver.id, "rejected")}
+                            >
+                              ✗
+                            </Button>
+                          </div>
+                        )}
                       </td>
                       <td>
                         <span className={`${
