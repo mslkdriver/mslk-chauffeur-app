@@ -468,6 +468,14 @@ async def login(credentials: UserLogin):
     if not user.get("is_active", True):
         raise HTTPException(status_code=403, detail="Account disabled")
     
+    # Check if driver is approved
+    if user.get("role") == UserRole.DRIVER.value:
+        approval_status = user.get("approval_status", "pending")
+        if approval_status == "pending":
+            raise HTTPException(status_code=403, detail="Votre inscription est en attente d'approbation par l'administrateur")
+        elif approval_status == "rejected":
+            raise HTTPException(status_code=403, detail="Votre inscription a été refusée. Contactez l'administrateur.")
+    
     token = create_token(user["id"], user["role"])
     return TokenResponse(token=token, user=user_to_response(user))
 
