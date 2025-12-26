@@ -28,7 +28,10 @@ export default function DriverLogin() {
     email: "",
     phone: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    vehicle_model: "",
+    vehicle_color: "",
+    vehicle_plate: ""
   });
 
   const handleLogin = async (e) => {
@@ -66,6 +69,11 @@ export default function DriverLogin() {
       return;
     }
 
+    if (!registerData.vehicle_model || !registerData.vehicle_plate) {
+      toast.error("Veuillez renseigner le modèle et l'immatriculation du véhicule");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -74,7 +82,10 @@ export default function DriverLogin() {
         email: registerData.email,
         phone: registerData.phone,
         password: registerData.password,
-        role: "driver"
+        role: "driver",
+        vehicle_model: registerData.vehicle_model,
+        vehicle_color: registerData.vehicle_color,
+        vehicle_plate: registerData.vehicle_plate
       });
       
       localStorage.setItem("mslk_token", response.data.token);
