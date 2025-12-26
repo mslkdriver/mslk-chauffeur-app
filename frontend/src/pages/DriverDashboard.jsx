@@ -527,6 +527,13 @@ export default function DriverDashboard() {
                 <p className="text-[#A1A1A1] text-xs">N° RÉSERVATION</p>
                 <p className="text-[#D4AF37] text-xl font-mono font-bold">{selectedTrip.id.slice(0, 8).toUpperCase()}</p>
               </div>
+
+              {/* Status */}
+              <div className="text-center">
+                <span className={`px-4 py-1 rounded text-sm font-medium ${statusColors[selectedTrip.status]}`}>
+                  {statusLabels[selectedTrip.status]}
+                </span>
+              </div>
               
               <div className="bg-black/50 p-3 rounded">
                 <p className="text-white font-bold">{formatDate(selectedTrip.pickup_datetime)} à {formatTime(selectedTrip.pickup_datetime)}</p>
@@ -543,10 +550,17 @@ export default function DriverDashboard() {
                 </div>
               </div>
               
+              {/* Client Info - Hide phone/email for completed trips */}
               <div className="bg-black/50 p-3 rounded">
                 <p className="text-[#A1A1A1] text-xs">CLIENT</p>
                 <p className="text-white font-bold">{selectedTrip.client_name}</p>
-                <p className="text-[#D4AF37]">{selectedTrip.client_phone}</p>
+                {/* Only show phone for active trips, not completed */}
+                {selectedTrip.status !== "completed" && selectedTrip.status !== "cancelled" && (
+                  <a href={`tel:${selectedTrip.client_phone}`} className="text-[#D4AF37] flex items-center gap-1 mt-1">
+                    <Phone size={14} />
+                    {selectedTrip.client_phone}
+                  </a>
+                )}
               </div>
               
               {selectedTrip.price > 0 && (
