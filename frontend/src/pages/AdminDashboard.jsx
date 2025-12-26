@@ -352,6 +352,24 @@ export default function AdminDashboard() {
     }
   };
 
+  // Update driver total revenue
+  const handleUpdateTotalRevenue = async () => {
+    if (!selectedDriverForRevenue) return;
+    
+    try {
+      await axios.put(
+        `${API}/admin/drivers/${selectedDriverForRevenue.id}/total-revenue`,
+        { total_revenue: parseFloat(newTotalRevenue) },
+        { headers: getAuthHeader() }
+      );
+      toast.success("Revenu total mis à jour !");
+      setRevenueTotalDialogOpen(false);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Erreur");
+    }
+  };
+
   // Delete client
   const handleDeleteClient = async (clientId, clientName) => {
     if (!window.confirm(`Supprimer définitivement le client ${clientName} ?`)) return;
