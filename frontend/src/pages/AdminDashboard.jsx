@@ -798,14 +798,23 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="text-white">{driver.total_trips}</td>
-                      <td className="text-[#D4AF37] font-bold">{driver.total_revenue.toFixed(0)}€</td>
+                      <td className="text-[#D4AF37] font-bold cursor-pointer hover:underline" 
+                          onClick={() => {
+                            setSelectedDriverForRevenue(driver);
+                            setNewTotalRevenue(String(driver.total_revenue || 0));
+                            setRevenueTotalDialogOpen(true);
+                          }}
+                          title="Cliquez pour modifier le revenu"
+                      >
+                        {driver.total_revenue.toFixed(0)}€
+                      </td>
                       <td className="text-red-400 font-bold cursor-pointer hover:underline" 
                           onClick={() => {
                             setSelectedDriverForCommission(driver);
                             setNewTotalCommission(String(driver.total_commission || 0));
                             setCommissionTotalDialogOpen(true);
                           }}
-                          title="Cliquez pour modifier"
+                          title="Cliquez pour modifier la commission"
                       >
                         {(driver.total_commission || 0).toFixed(2)}€
                       </td>
