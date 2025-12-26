@@ -820,7 +820,16 @@ export default function AdminDashboard() {
                           {driverStatusLabels[driver.status]}
                         </span>
                       </td>
-                      <td className="text-white">{driver.total_trips}</td>
+                      <td className="text-white cursor-pointer hover:underline hover:text-[#D4AF37]" 
+                          onClick={() => {
+                            setSelectedDriverForTrips(driver);
+                            setNewTotalTrips(String(driver.total_trips || 0));
+                            setTripsTotalDialogOpen(true);
+                          }}
+                          title="Cliquez pour modifier le nombre de courses"
+                      >
+                        {driver.total_trips}
+                      </td>
                       <td className="text-[#D4AF37] font-bold cursor-pointer hover:underline" 
                           onClick={() => {
                             setSelectedDriverForRevenue(driver);
